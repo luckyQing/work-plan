@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人员管理 - 任务排期管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+        body { background-color: #f5f7fa; color: #333; }
+        /* 顶部导航 */
+        .top-nav { background: #001529; padding: 0 24px; display: flex; align-items: center; height: 48px; }
+        .top-nav .logo { color: #fff; font-size: 16px; font-weight: 600; margin-right: 40px; }
+        .top-nav a { color: rgba(255,255,255,0.65); text-decoration: none; padding: 0 16px; line-height: 48px; font-size: 14px; transition: color 0.3s; }
+        .top-nav a:hover, .top-nav a.active { color: #fff; }
+        .top-nav .right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+        .top-nav .right span { color: rgba(255,255,255,0.65); font-size: 14px; }
+        .top-nav .right .logout-btn { color: rgba(255,255,255,0.65); background: none; border: none; cursor: pointer; font-size: 14px; }
+        .top-nav .right .logout-btn:hover { color: #ff4d4f; }
+        /* 内容区 */
+        .page-content { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .page-header h3 { font-size: 20px; }
+        .btn { padding: 6px 16px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; font-size: 14px; background: #fff; }
+        .btn:hover { background: #f5f5f5; }
+        .btn-primary { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .btn-primary:hover { background: #40a9ff; }
+        .btn-danger { background: #ff4d4f; color: #fff; border-color: #ff4d4f; }
+        .btn-danger:hover { background: #ff7875; }
+        .btn-sm { padding: 3px 10px; font-size: 12px; }
+        /* 表格 */
+        .data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .data-table th { background: #fafafa; padding: 12px 16px; text-align: left; font-weight: 600; border-bottom: 1px solid #e8e8e8; font-size: 14px; }
+        .data-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+        .data-table tr:hover td { background: #e6f7ff; }
+        .actions { display: flex; gap: 8px; }
+        .status-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+        .status-on { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+        .status-off { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+        .role-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+        /* 弹窗 */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 8px; padding: 24px; width: 480px; max-width: 90%; }
+        .modal h3 { margin-bottom: 20px; font-size: 18px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 14px; color: #666; }
+        .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
+    </style>
+</head>
+<body>
+<div class="top-nav">
+    <div class="logo">任务排期管理</div>
+    <a href="week-view.html">周排期</a>
+    <a href="demand-manage.html">需求管理</a>
+    <a href="user-manage.html" class="active">人员管理</a>
+    <div class="right">
+        <span id="navUser"></span>
+        <button class="logout-btn" onclick="doLogout()">退出</button>
+    </div>
+</div>
+<div class="page-content">
+    <div class="page-header">
+        <h3>人员管理</h3>
+        <button class="btn btn-primary" onclick="showAddModal()">新增用户</button>
+    </div>
+    <div class="filter-bar">
+        <select class="btn" id="filterDept" onchange="loadUsers()">
+            <option value="">全部部门</option>
+        </select>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th><th>用户名</th><th>姓名</th><th>部门</th><th>角色</th><th>状态</th><th>创建时间</th><th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="userTableBody"></tbody>
+    </table>
+</div>
+
+<!-- 新增/编辑弹窗 -->
+<div class="modal-overlay" id="userModal">
+    <div class="modal">
+        <h3 id="userModalTitle">新增用户</h3>
+        <input type="hidden" id="userId">
+        <div class="form-group"><label>用户名</label><input type="text" id="formUsername"></div>
+        <div class="form-group"><label>密码（修改时留空则不更新）</label><input type="password" id="formPassword"></div>
+        <div class="form-group"><label>姓名</label><input type="text" id="formRealName"></div>
+        <div class="form-group"><label>部门</label><select id="formDept"></select></div>
+        <div class="form-group"><label>角色</label>
+            <select id="formRole"><option value="USER">普通用户</option><option value="ADMIN">管理员</option></select>
+        </div>
+        <div class="form-group"><label>状态</label>
+            <select id="formStatus"><option value="1">启用</option><option value="0">禁用</option></select>
+        </div>
+        <div class="form-actions">
+            <button class="btn" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveUser()">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var token = localStorage.getItem('token');
+var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+if (!token) { location.href = 'login.html'; }
+document.getElementById('navUser').textContent = currentUser ? currentUser.realName : '';
+
+function api(url, method, body) {
+    var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json' } };
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(url, opts).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.code === 401) { location.href = 'login.html'; throw new Error('未登录'); }
+        return data;
+    });
+}
+function doLogout() {
+    api('/api/auth/logout', 'POST').catch(function(){});
+    localStorage.removeItem('token'); localStorage.removeItem('currentUser');
+    location.href = 'login.html';
+}
+
+function loadDepts() {
+    api('/api/dept/list').then(function(res) {
+        if (res.code !== 200) return;
+        var html = '<option value="">全部部门</option>';
+        var fhtml = '<option value="">请选择</option>';
+        res.data.forEach(function(d) {
+            html += '<option value="' + d.id + '">' + d.deptName + '</option>';
+            fhtml += '<option value="' + d.id + '">' + d.deptName + '</option>';
+        });
+        document.getElementById('filterDept').innerHTML = html;
+        document.getElementById('formDept').innerHTML = fhtml;
+    });
+}
+
+function loadUsers() {
+    var deptId = document.getElementById('filterDept').value;
+    var url = '/api/user/list';
+    if (deptId) url += '?deptId=' + deptId;
+    api(url).then(function(res) {
+        if (res.code !== 200) return;
+        var tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = '';
+        res.data.forEach(function(u) {
+            var statusCls = u.status === 1 ? 'status-on' : 'status-off';
+            var statusTxt = u.status === 1 ? '启用' : '禁用';
+            var time = u.createTime ? u.createTime.substring(0, 16).replace('T', ' ') : '';
+            tbody.innerHTML += '<tr>' +
+                '<td>' + u.id + '</td>' +
+                '<td>' + u.username + '</td>' +
+                '<td>' + u.realName + '</td>' +
+                '<td>' + (u.deptName || '-') + '</td>' +
+                '<td><span class="role-tag">' + u.role + '</span></td>' +
+                '<td><span class="status-tag ' + statusCls + '">' + statusTxt + '</span></td>' +
+                '<td>' + time + '</td>' +
+                '<td class="actions">' +
+                    '<button class="btn btn-sm btn-primary" onclick="showEditModal(' + u.id + ')">编辑</button>' +
+                    '<button class="btn btn-sm btn-danger" onclick="deleteUser(' + u.id + ')">删除</button>' +
+                '</td></tr>';
+        });
+    });
+}
+
+function showAddModal() {
+    document.getElementById('userModalTitle').textContent = '新增用户';
+    document.getElementById('userId').value = '';
+    document.getElementById('formUsername').value = '';
+    document.getElementById('formUsername').disabled = false;
+    document.getElementById('formPassword').value = '';
+    document.getElementById('formRealName').value = '';
+    document.getElementById('formRole').value = 'USER';
+    document.getElementById('formStatus').value = '1';
+    document.getElementById('userModal').classList.add('active');
+}
+
+function showEditModal(id) {
+    api('/api/user/' + id).then(function(res) {
+        if (res.code !== 200 || !res.data) return;
+        var u = res.data;
+        document.getElementById('userModalTitle').textContent = '编辑用户';
+        document.getElementById('userId').value = u.id;
+        document.getElementById('formUsername').value = u.username;
+        document.getElementById('formUsername').disabled = true;
+        document.getElementById('formPassword').value = '';
+        document.getElementById('formRealName').value = u.realName;
+        document.getElementById('formDept').value = u.deptId || '';
+        document.getElementById('formRole').value = u.role;
+        document.getElementById('formStatus').value = u.status;
+        document.getElementById('userModal').classList.add('active');
+    });
+}
+
+function closeModal() { document.getElementById('userModal').classList.remove('active'); }
+
+function saveUser() {
+    var id = document.getElementById('userId').value;
+    var data = {
+        username: document.getElementById('formUsername').value,
+        password: document.getElementById('formPassword').value,
+        realName: document.getElementById('formRealName').value,
+        deptId: document.getElementById('formDept').value || null,
+        role: document.getElementById('formRole').value,
+        status: parseInt(document.getElementById('formStatus').value)
+    };
+    if (!data.username || !data.realName) { alert('请填写用户名和姓名'); return; }
+    if (!id && !data.password) { alert('新增用户请填写密码'); return; }
+    var method = id ? 'PUT' : 'POST';
+    if (id) data.id = parseInt(id);
+    api('/api/user', method, data).then(function(res) {
+        if (res.code === 200) { closeModal(); loadUsers(); }
+        else { alert(res.msg); }
+    });
+}
+
+function deleteUser(id) {
+    if (!confirm('确定删除该用户？')) return;
+    api('/api/user/' + id, 'DELETE').then(function(res) {
+        if (res.code === 200) loadUsers();
+        else alert(res.msg);
+    });
+}
+
+loadDepts();
+loadUsers();
+</script>
+</body>
+</html>

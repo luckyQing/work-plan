@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>任务排期管理系统</title>
+    <script>
+        /* 已登录跳周排期，未登录跳登录页 */
+        if (localStorage.getItem('token')) {
+            location.href = 'week-view.html';
+        } else {
+            location.href = 'login.html';
+        }
+    </script>
+</head>
+<body></body>
+</html>

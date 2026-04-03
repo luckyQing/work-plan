@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周排期视图 - 任务排期管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+        body { background-color: #f5f7fa; color: #333; }
+        .top-nav { background: #001529; padding: 0 24px; display: flex; align-items: center; height: 48px; }
+        .top-nav .logo { color: #fff; font-size: 16px; font-weight: 600; margin-right: 40px; }
+        .top-nav a { color: rgba(255,255,255,0.65); text-decoration: none; padding: 0 16px; line-height: 48px; font-size: 14px; transition: color 0.3s; }
+        .top-nav a:hover, .top-nav a.active { color: #fff; }
+        .top-nav .right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+        .top-nav .right span { color: rgba(255,255,255,0.65); font-size: 14px; }
+        .top-nav .right .logout-btn { color: rgba(255,255,255,0.65); background: none; border: none; cursor: pointer; font-size: 14px; }
+        .top-nav .right .logout-btn:hover { color: #ff4d4f; }
+        .container { max-width: 96%; margin: 0 auto; padding: 20px 0; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 10px 0; border-bottom: 1px solid #eaeaea; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        .btn { padding: 6px 12px; background-color: #fff; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn:hover { background-color: #f5f5f5; }
+        .btn-primary { background-color: #1890ff; color: #fff; border-color: #1890ff; }
+        .btn-primary:hover { background-color: #40a9ff; }
+        .date-range { margin: 0 15px; font-weight: bold; }
+        .filter-container { display: flex; justify-content: space-between; margin-bottom: 15px; padding: 10px; background-color: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .filter-left, .filter-right { display: flex; align-items: center; gap: 10px; }
+        .checkbox-label { display: flex; align-items: center; font-size: 14px; }
+        .schedule-table { width: 100%; border-collapse: collapse; background-color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 4px; overflow: visible; }
+        .schedule-table th { background-color: #f0f2f5; padding: 12px 8px; text-align: center; font-weight: 600; border-right: 1px solid #e8e8e8; }
+        .schedule-table th:first-child { width: 150px; }
+        .schedule-table td { padding: 8px; border-right: 1px solid #e8e8e8; border-bottom: 1px solid #e8e8e8; vertical-align: top; position: relative; }
+        .schedule-table tr:last-child td { border-bottom: none; }
+        .person-cell { text-align: center; vertical-align: middle !important; font-weight: 500; }
+        .date-header { display: flex; flex-direction: column; }
+        .date-full { font-size: 14px; font-weight: bold; }
+        .task-container { min-height: 40px; position: relative; }
+        .main-task { margin-bottom: 5px; position: relative; }
+        .task-header { display: flex; align-items: center; cursor: pointer; padding: 5px 0; }
+        .task-header.no-subtasks { cursor: default; }
+        .expand-icon { margin-right: 5px; font-size: 12px; color: #666; transition: transform 0.2s; width: 12px; text-align: center; }
+        .expand-icon.hidden { visibility: hidden; }
+        .expanded .expand-icon { transform: rotate(180deg); }
+        .progress-bar { height: 24px; background-color: #e6f7ff; border-radius: 4px; position: relative; overflow: hidden; margin-bottom: 3px; flex: 1; }
+        .main-task .progress-bar { height: 28px; background-color: #f0f7ff; border: 1px solid #d0e6ff; }
+        .sub-task .progress-bar { height: 20px; margin-left: 20px; background-color: #f6ffed; border: 1px solid #d9f7be; }
+        .progress-content { display: flex; align-items: center; height: 100%; padding: 0 8px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .hours { font-weight: bold; margin-right: 8px; color: #1890ff; }
+        .task-type { padding: 2px 6px; background-color: #1890ff; color: white; border-radius: 2px; margin-right: 8px; font-size: 10px; }
+        .task-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+        .sub-tasks { display: none; margin-left: 20px; }
+        .expanded .sub-tasks { display: block; }
+        .weekend { background-color: #f9f9f9; }
+        .today { background-color: #fff7e6; }
+        .today .date-full { color: #fa8c16; }
+        .cross-day-bar { position: absolute; z-index: 10; pointer-events: auto; }
+        .cross-day-bar .progress-bar { height: 28px; background-color: #f0f7ff; border: 1px solid #d0e6ff; border-radius: 4px; margin-bottom: 0; }
+        .cross-day-bar .progress-content { display: flex; align-items: center; height: 100%; padding: 0 8px; font-size: 12px; white-space: nowrap; }
+        .cross-day-bar .task-header { display: flex; align-items: center; padding: 5px 0; cursor: pointer; }
+        .cross-day-bar .task-header.no-subtasks { cursor: default; }
+        .cross-day-bar .sub-tasks { display: none; }
+        .cross-day-bar.expanded .sub-tasks { display: block; }
+        .cross-day-bar .sub-task .progress-bar { height: 20px; margin-left: 20px; background-color: #f6ffed; border: 1px solid #d9f7be; }
+        .cross-day-placeholder { visibility: hidden; pointer-events: none; }
+        .cross-day-placeholder .progress-bar { height: 28px; margin-bottom: 0; }
+        .cross-day-placeholder .task-header { padding: 5px 0; }
+        .cross-day-placeholder .sub-task .progress-bar { height: 20px; }
+        /* 空占位槽，用于在某列没有该任务时撑开对应行高 */
+        .lane-spacer { visibility: hidden; pointer-events: none; }
+        .lane-spacer .progress-bar { height: 28px; margin-bottom: 0; }
+        .lane-spacer .task-header { padding: 5px 0; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 8px; padding: 24px; width: 480px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal h3 { margin-bottom: 20px; font-size: 18px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 14px; color: #666; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; }
+        .form-group textarea { height: 80px; resize: vertical; }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="top-nav">
+    <div class="logo">任务排期管理</div>
+    <a href="week-view.html" class="active">周排期</a>
+    <a href="demand-manage.html">需求管理</a>
+    <a href="user-manage.html">人员管理</a>
+    <div class="right">
+        <span id="navUser"></span>
+        <button class="logout-btn" onclick="doLogout()">退出</button>
+    </div>
+</div>
+<div class="container">
+    <div class="header">
+        <div class="controls">
+            <button class="btn" onclick="prevWeek()">上一周</button>
+            <span class="date-range" id="dateRange"></span>
+            <button class="btn" onclick="nextWeek()">下一周</button>
+            <button class="btn" onclick="goThisWeek()">本周</button>
+            <button class="btn btn-primary" onclick="showTaskModal()">录入任务</button>
+            <button class="btn btn-primary" onclick="showDemandModal()">录入需求</button>
+            <div class="checkbox-label">
+                <input type="checkbox" id="show-self" onchange="loadSchedule()">
+                <label for="show-self">只看自己</label>
+            </div>
+            <button class="btn" onclick="toggleExpand()">展开</button>
+        </div>
+    </div>
+    <div class="filter-container">
+        <div class="filter-left">
+            <select class="btn" id="deptFilter" onchange="loadSchedule()"><option value="">全部部门</option></select>
+            <select class="btn" id="projectFilter" onchange="loadSchedule()"><option value="">全部项目</option></select>
+        </div>
+        <div class="filter-right">
+            <input type="text" class="btn" id="searchInput" placeholder="搜索任务或人员">
+            <button class="btn" onclick="loadSchedule()">筛选</button>
+        </div>
+    </div>
+    <table class="schedule-table" id="scheduleTable">
+        <thead><tr id="headerRow"></tr></thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+
+<!-- 任务录入弹窗 -->
+<div class="modal-overlay" id="taskModal">
+    <div class="modal">
+        <h3 id="taskModalTitle">录入任务</h3>
+        <input type="hidden" id="taskId">
+        <div class="form-group"><label>任务名称</label><input type="text" id="taskName"></div>
+        <div class="form-group"><label>任务类型</label>
+            <select id="taskType"><option>开发</option><option>测试</option><option>设计</option><option>其他</option></select>
+        </div>
+        <div class="form-group"><label>关联需求</label><select id="taskDemandId"><option value="">无（独立任务）</option></select></div>
+        <div class="form-group"><label>负责人</label><select id="taskAssignee"></select></div>
+        <div class="form-group"><label>开始日期</label><input type="date" id="taskStart"></div>
+        <div class="form-group"><label>结束日期</label><input type="date" id="taskEnd"></div>
+        <div class="form-group"><label>预估工时(h)</label><input type="number" id="taskHours" step="0.5" min="0"></div>
+        <div class="form-group"><label>描述</label><textarea id="taskDesc"></textarea></div>
+        <div class="form-actions">
+            <button class="btn" onclick="closeModal('taskModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveTask()">保存</button>
+        </div>
+    </div>
+</div>
+<!-- 需求录入弹窗 -->
+<div class="modal-overlay" id="demandModal">
+    <div class="modal">
+        <h3 id="demandModalTitle">录入需求</h3>
+        <input type="hidden" id="demandId">
+        <div class="form-group"><label>需求名称</label><input type="text" id="demandName"></div>
+        <div class="form-group"><label>需求类型</label>
+            <select id="demandType"><option>需求</option><option>优化</option><option>Bug</option></select>
+        </div>
+        <div class="form-group"><label>所属项目</label><select id="demandProject"></select></div>
+        <div class="form-group"><label>优先级</label>
+            <select id="demandPriority"><option value="0">低</option><option value="1" selected>中</option><option value="2">高</option></select>
+        </div>
+        <div class="form-group"><label>计划开始</label><input type="date" id="demandStart"></div>
+        <div class="form-group"><label>计划结束</label><input type="date" id="demandEnd"></div>
+        <div class="form-group"><label>预估工时(h)</label><input type="number" id="demandHours" step="0.5" min="0"></div>
+        <div class="form-group"><label>描述</label><textarea id="demandDesc"></textarea></div>
+        <div class="form-actions">
+            <button class="btn" onclick="closeModal('demandModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveDemand()">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var token = localStorage.getItem('token');
+var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+if (!token) { location.href = 'login.html'; }
+var weekStart = '';
+var scheduleData = [];
+var allExpanded = false;
+var WEEK_DAYS = ["周日","周一","周二","周三","周四","周五","周六"];
+document.getElementById('navUser').textContent = currentUser ? currentUser.realName : '';
+
+function api(url, method, body) {
+    var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json' } };
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(url, opts).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.code === 401) { location.href = 'login.html'; throw new Error('未登录'); }
+        return data;
+    });
+}
+function doLogout() {
+    api('/api/auth/logout', 'POST').catch(function(){});
+    localStorage.removeItem('token'); localStorage.removeItem('currentUser');
+    location.href = 'login.html';
+}
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function getWeekDates(startStr) {
+    var d = new Date(startStr), dates = [];
+    for (var i = 0; i < 7; i++) { var cur = new Date(d); cur.setDate(d.getDate() + i); dates.push(cur); }
+    return dates;
+}
+function fmtDate(d) {
+    var m = d.getMonth() + 1, day = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
+}
+function fmtShort(d) { return (d.getMonth()+1) + '/' + d.getDate() + '(' + WEEK_DAYS[d.getDay()] + ')'; }
+function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
+function dateIndex(dates, dateStr) {
+    for (var i = 0; i < dates.length; i++) { if (fmtDate(dates[i]) === dateStr) return i; }
+    return -1;
+}
+function getMonday() {
+    var d = new Date(), day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff); return fmtDate(d);
+}
+function init() { weekStart = getMonday(); loadFilters(); loadSchedule(); }
+function loadFilters() {
+    api('/api/dept/list').then(function(res) {
+        if (res.code === 200) {
+            var sel = document.getElementById('deptFilter');
+            sel.innerHTML = '<option value="">全部部门</option>';
+            res.data.forEach(function(d) { sel.innerHTML += '<option value="' + d.id + '">' + d.deptName + '</option>'; });
+        }
+    });
+    api('/api/project/list').then(function(res) {
+        if (res.code === 200) {
+            var sel = document.getElementById('projectFilter');
+            sel.innerHTML = '<option value="">全部项目</option>';
+            res.data.forEach(function(p) { sel.innerHTML += '<option value="' + p.id + '">' + p.projectName + '</option>'; });
+            var dSel = document.getElementById('demandProject');
+            dSel.innerHTML = '<option value="">请选择</option>';
+            res.data.forEach(function(p) { dSel.innerHTML += '<option value="' + p.id + '">' + p.projectName + '</option>'; });
+        }
+    });
+}
+function loadSchedule() {
+    var weekDates = getWeekDates(weekStart);
+    var endDateStr = fmtDate(weekDates[6]);
+    var deptId = document.getElementById('deptFilter').value;
+    var projectId = document.getElementById('projectFilter').value;
+    var onlySelf = document.getElementById('show-self').checked;
+    var keyword = document.getElementById('searchInput').value;
+    var url = '/api/schedule/week?startDate=' + weekStart + '&endDate=' + endDateStr;
+    if (deptId) url += '&deptId=' + deptId;
+    if (projectId) url += '&projectId=' + projectId;
+    if (onlySelf) url += '&onlySelf=true';
+    if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
+    api(url).then(function(res) { if (res.code === 200) { scheduleData = res.data; render(); } });
+}
+function prevWeek() { var d = new Date(weekStart); d.setDate(d.getDate() - 7); weekStart = fmtDate(d); loadSchedule(); }
+function nextWeek() { var d = new Date(weekStart); d.setDate(d.getDate() + 7); weekStart = fmtDate(d); loadSchedule(); }
+function goThisWeek() { weekStart = getMonday(); loadSchedule(); }
+function toggleExpand() {
+    allExpanded = !allExpanded;
+    document.querySelectorAll('.main-task, .cross-day-bar').forEach(function(el) {
+        if (allExpanded) el.classList.add('expanded'); else el.classList.remove('expanded');
+    });
+    document.querySelectorAll('.cross-day-bar').forEach(function(bar) { syncPlaceholders(bar, bar.classList.contains('expanded')); });
+    requestAnimationFrame(function() { positionAllCrossDayBars(); });
+}
+
+/**
+ * 泳道分配算法：为一个人的所有任务分配不重叠的行（lane）
+ * 按开始日期排序，贪心分配到最早可用的 lane
+ * 返回 [{task, si, ei, lane}]
+ */
+function allocateLanes(tasks, weekDates) {
+    var items = [];
+    tasks.forEach(function(task) {
+        var si = dateIndex(weekDates, task.startDate);
+        var ei = dateIndex(weekDates, task.endDate);
+        if (si < 0) si = 0;
+        if (ei < 0) ei = 6;
+        items.push({ task: task, si: si, ei: ei, lane: 0 });
+    });
+    // 按开始列排序，开始相同按结束列排序
+    items.sort(function(a, b) { return a.si !== b.si ? a.si - b.si : a.ei - b.ei; });
+    // lanes[i] = 该 lane 当前被占用到的最大列索引
+    var lanes = [];
+    items.forEach(function(item) {
+        var placed = false;
+        for (var l = 0; l < lanes.length; l++) {
+            // 该 lane 的上一个任务已经在 item.si 之前结束，可以复用
+            if (lanes[l] < item.si) {
+                item.lane = l;
+                lanes[l] = item.ei;
+                placed = true;
+                break;
+            }
+        }
+        if (!placed) {
+            item.lane = lanes.length;
+            lanes.push(item.ei);
+        }
+    });
+    return items;
+}
+function render() {
+    var weekDates = getWeekDates(weekStart);
+    var endDate = new Date(weekDates[0]); endDate.setDate(endDate.getDate() + 6);
+    document.getElementById('dateRange').textContent = weekStart + ' 至 ' + fmtDate(endDate);
+    var headerRow = document.getElementById('headerRow');
+    headerRow.innerHTML = '<th>人员</th>';
+    var todayStr = fmtDate(new Date());
+    weekDates.forEach(function(d) {
+        var cls = isWeekend(d) ? ' class="weekend"' : '';
+        if (fmtDate(d) === todayStr) cls = ' class="today"';
+        headerRow.innerHTML += '<th' + cls + '><div class="date-header"><span class="date-full">' + fmtShort(d) + '</span></div></th>';
+    });
+    var tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    scheduleData.forEach(function(person) {
+        var tr = document.createElement('tr');
+        var tdName = document.createElement('td');
+        tdName.className = 'person-cell'; tdName.textContent = person.name;
+        tr.appendChild(tdName);
+        weekDates.forEach(function(d) {
+            var td = document.createElement('td');
+            if (isWeekend(d)) td.className = 'weekend';
+            if (fmtDate(d) === todayStr) td.className = 'today';
+            td.style.position = 'relative';
+            var container = document.createElement('div');
+            container.className = 'task-container';
+            td.appendChild(container); tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+        var cells = tr.querySelectorAll('td');
+
+        // 用泳道算法分配行，确保重叠任务错开
+        var laneItems = allocateLanes(person.tasks, weekDates);
+        // 计算总 lane 数
+        var totalLanes = 0;
+        laneItems.forEach(function(item) { if (item.lane + 1 > totalLanes) totalLanes = item.lane + 1; });
+
+        // 构建每列每个 lane 应该放什么的映射: colSlots[col][lane] = item | null
+        var colSlots = [];
+        for (var c = 0; c < 7; c++) {
+            colSlots[c] = [];
+            for (var l = 0; l < totalLanes; l++) colSlots[c][l] = null;
+        }
+        laneItems.forEach(function(item) {
+            for (var c = item.si; c <= item.ei; c++) {
+                colSlots[c][item.lane] = item;
+            }
+        });
+
+        // 按 lane 顺序，在每列中插入内容或空占位
+        for (var lane = 0; lane < totalLanes; lane++) {
+            for (var col = 0; col < 7; col++) {
+                var container = cells[col + 1].querySelector('.task-container');
+                var item = colSlots[col][lane];
+                if (item && item.si === item.ei && item.si === col) {
+                    // 单日任务，直接渲染
+                    renderSingleDayTask(container, item.task);
+                } else if (item && item.si !== item.ei) {
+                    if (col === item.si) {
+                        // 跨天任务起始列：插入占位 + 跨天条
+                        renderCrossDayPlaceholder(container, item.task, col, item, weekDates);
+                        renderCrossDayBar(cells, container, item.task, item, weekDates);
+                    } else {
+                        // 跨天任务非起始列：只插入占位
+                        renderCrossDayPlaceholder(container, item.task, col, item, weekDates);
+                    }
+                } else {
+                    // 该列该 lane 没有任务，插入空占位撑高度
+                    container.insertAdjacentHTML('beforeend',
+                        '<div class="main-task lane-spacer"><div class="task-header"><div class="progress-bar"><div class="progress-content">&nbsp;</div></div></div></div>');
+                }
+            }
+        }
+    });
+    requestAnimationFrame(function() { positionAllCrossDayBars(); bindExpandEvents(); });
+}
+function renderSingleDayTask(container, task) {
+    var hasSubs = task.subTasks && task.subTasks.length > 0;
+    var html = '<div class="main-task"><div class="task-header' + (hasSubs ? '' : ' no-subtasks') + '">';
+    html += '<span class="expand-icon' + (hasSubs ? '' : ' hidden') + '">▼</span>';
+    html += '<div class="progress-bar"><div class="progress-content">';
+    html += '<span class="hours">' + task.totalHours + 'h</span>';
+    html += '<span class="task-type">' + task.taskType + '</span>';
+    html += '<span class="task-name">' + task.taskName + '</span>';
+    html += '</div></div></div>';
+    if (hasSubs) {
+        html += '<div class="sub-tasks">';
+        task.subTasks.forEach(function(s) {
+            html += '<div class="sub-task"><div class="progress-bar"><div class="progress-content">';
+            html += '<span class="hours">' + s.totalHours + 'h</span><span class="task-type">' + s.type + '</span><span class="task-name">' + s.name + '</span>';
+            html += '</div></div></div>';
+        });
+        html += '</div>';
+    }
+    html += '</div>';
+    container.insertAdjacentHTML('beforeend', html);
+}
+
+function renderCrossDayPlaceholder(container, task, col, item, weekDates) {
+    var hasSubs = task.subTasks && task.subTasks.length > 0;
+    var subInfos = [];
+    if (hasSubs) {
+        task.subTasks.forEach(function(s) {
+            var ssi = dateIndex(weekDates, s.startDate), sei = dateIndex(weekDates, s.endDate);
+            if (ssi < 0) ssi = item.si; if (sei < 0) sei = item.ei;
+            subInfos.push({ sub: s, si: ssi, ei: sei });
+        });
+    }
+    var ph = '<div class="main-task cross-day-placeholder"><div class="task-header"><div class="progress-bar"><div class="progress-content">';
+    ph += '<span class="hours">' + task.totalHours + 'h</span><span class="task-name">' + task.taskName + '</span></div></div></div>';
+    if (hasSubs) {
+        ph += '<div class="sub-tasks">';
+        subInfos.forEach(function(info) {
+            ph += '<div class="sub-task"><div class="progress-bar"><div class="progress-content">';
+            ph += (col >= info.si && col <= info.ei) ? '<span class="hours">' + info.sub.totalHours + 'h</span>' : '<span class="hours">&nbsp;</span>';
+            ph += '</div></div></div>';
+        });
+        ph += '</div>';
+    }
+    ph += '</div>';
+    container.insertAdjacentHTML('beforeend', ph);
+}
+
+function renderCrossDayBar(cells, startContainer, task, item, weekDates) {
+    var hasSubs = task.subTasks && task.subTasks.length > 0;
+    var subInfos = [];
+    if (hasSubs) {
+        task.subTasks.forEach(function(s) {
+            var ssi = dateIndex(weekDates, s.startDate), sei = dateIndex(weekDates, s.endDate);
+            if (ssi < 0) ssi = item.si; if (sei < 0) sei = item.ei;
+            subInfos.push({ sub: s, si: ssi, ei: sei });
+        });
+    }
+    var bar = '<div class="cross-day-bar" data-start-col="' + item.si + '" data-end-col="' + item.ei + '">';
+    bar += '<div class="task-header' + (hasSubs ? '' : ' no-subtasks') + '"><span class="expand-icon' + (hasSubs ? '' : ' hidden') + '">▼</span>';
+    bar += '<div class="progress-bar"><div class="progress-content"><span class="hours">' + task.totalHours + 'h</span>';
+    bar += '<span class="task-type">' + task.taskType + '</span><span class="task-name">' + task.taskName + '</span></div></div></div>';
+    if (hasSubs) {
+        bar += '<div class="sub-tasks">';
+        subInfos.forEach(function(info, idx) {
+            bar += '<div class="sub-task" data-sub-start-col="' + info.si + '" data-sub-end-col="' + info.ei + '" data-sub-idx="' + idx + '">';
+            bar += '<div class="progress-bar"><div class="progress-content"><span class="hours">' + info.sub.totalHours + 'h</span>';
+            bar += '<span class="task-type">' + info.sub.type + '</span><span class="task-name">' + info.sub.name + '</span></div></div></div>';
+        });
+        bar += '</div>';
+    }
+    bar += '</div>';
+    startContainer.insertAdjacentHTML('beforeend', bar);
+}
+function positionAllCrossDayBars() {
+    document.querySelectorAll('.cross-day-bar').forEach(function(bar) {
+        var si = parseInt(bar.getAttribute('data-start-col')), ei = parseInt(bar.getAttribute('data-end-col'));
+        var row = bar.closest('tr'), cells = row.querySelectorAll('td');
+        var firstCell = cells[si + 1], lastCell = cells[ei + 1];
+        var firstRect = firstCell.getBoundingClientRect(), lastRect = lastCell.getBoundingClientRect();
+        var width = lastRect.right - firstRect.left;
+        var container = firstCell.querySelector('.task-container');
+        // 找到该 bar 对应的占位元素（它前面紧邻的 cross-day-placeholder）
+        var allChildren = container.children;
+        var phEl = null;
+        for (var i = 0; i < allChildren.length; i++) {
+            if (allChildren[i] === bar && i > 0) { phEl = allChildren[i - 1]; break; }
+        }
+        var phTop = 0;
+        if (phEl) { var cr = container.getBoundingClientRect(); phTop = phEl.getBoundingClientRect().top - cr.top; }
+        bar.style.left = '0px'; bar.style.width = (width - 8) + 'px'; bar.style.top = phTop + 'px';
+        firstCell.style.overflow = 'visible'; container.style.position = 'relative';
+        bar.querySelectorAll('.sub-task[data-sub-start-col]').forEach(function(subEl) {
+            var ssi = parseInt(subEl.getAttribute('data-sub-start-col')), sei = parseInt(subEl.getAttribute('data-sub-end-col'));
+            var sfr = cells[ssi + 1].getBoundingClientRect(), slr = cells[sei + 1].getBoundingClientRect();
+            subEl.style.position = 'relative';
+            subEl.style.left = (sfr.left - firstRect.left - 20) + 'px';
+            subEl.style.width = (slr.right - sfr.left - 8) + 'px';
+        });
+    });
+}
+
+function syncPlaceholders(bar, isExp) {
+    var psi = parseInt(bar.getAttribute('data-start-col')), pei = parseInt(bar.getAttribute('data-end-col'));
+    var row = bar.closest('tr'), cells = row.querySelectorAll('td');
+    for (var c = psi; c <= pei; c++) {
+        var cc = cells[c + 1].querySelector('.task-container');
+        // 找到该列中与此 bar 对应的 placeholder（通过任务名匹配）
+        var barName = bar.querySelector('.task-name').textContent;
+        var phs = cc.querySelectorAll('.cross-day-placeholder');
+        for (var i = 0; i < phs.length; i++) {
+            var phName = phs[i].querySelector('.task-name');
+            if (phName && phName.textContent === barName) {
+                var s = phs[i].querySelector('.sub-tasks');
+                if (s) s.style.display = isExp ? 'block' : 'none';
+                break;
+            }
+        }
+    }
+}
+
+function bindExpandEvents() {
+    document.querySelectorAll('.task-header:not(.no-subtasks)').forEach(function(header) {
+        if (header._bound) return; header._bound = true;
+        header.addEventListener('click', function() {
+            var parent = this.closest('.main-task') || this.closest('.cross-day-bar');
+            if (!parent) return;
+            parent.classList.toggle('expanded');
+            if (parent.classList.contains('cross-day-bar')) {
+                syncPlaceholders(parent, parent.classList.contains('expanded'));
+                requestAnimationFrame(function() { positionAllCrossDayBars(); });
+            }
+        });
+    });
+}
+/* 任务弹窗 */
+function showTaskModal() {
+    document.getElementById('taskModalTitle').textContent = '录入任务';
+    document.getElementById('taskId').value = '';
+    document.getElementById('taskName').value = '';
+    document.getElementById('taskType').value = '开发';
+    document.getElementById('taskStart').value = weekStart;
+    document.getElementById('taskEnd').value = weekStart;
+    document.getElementById('taskHours').value = '';
+    document.getElementById('taskDesc').value = '';
+    api('/api/user/list').then(function(res) {
+        if (res.code === 200) {
+            var sel = document.getElementById('taskAssignee'); sel.innerHTML = '';
+            res.data.forEach(function(u) {
+                sel.innerHTML += '<option value="' + u.id + '"' + (currentUser && u.id == currentUser.userId ? ' selected' : '') + '>' + u.realName + '</option>';
+            });
+        }
+    });
+    api('/api/demand/list').then(function(res) {
+        if (res.code === 200) {
+            var sel = document.getElementById('taskDemandId');
+            sel.innerHTML = '<option value="">无（独立任务）</option>';
+            res.data.forEach(function(d) { sel.innerHTML += '<option value="' + d.id + '">' + d.demandName + '</option>'; });
+        }
+    });
+    document.getElementById('taskModal').classList.add('active');
+}
+function saveTask() {
+    var id = document.getElementById('taskId').value;
+    var data = { taskName: document.getElementById('taskName').value, taskType: document.getElementById('taskType').value,
+        demandId: document.getElementById('taskDemandId').value || null, assigneeId: document.getElementById('taskAssignee').value,
+        startDate: document.getElementById('taskStart').value, endDate: document.getElementById('taskEnd').value,
+        totalHours: parseFloat(document.getElementById('taskHours').value) || 0, description: document.getElementById('taskDesc').value };
+    if (!data.taskName) { alert('请输入任务名称'); return; }
+    if (id) data.id = parseInt(id);
+    api('/api/task', id ? 'PUT' : 'POST', data).then(function(res) {
+        if (res.code === 200) { closeModal('taskModal'); loadSchedule(); } else alert(res.msg);
+    });
+}
+/* 需求弹窗 */
+function showDemandModal() {
+    document.getElementById('demandModalTitle').textContent = '录入需求';
+    document.getElementById('demandId').value = '';
+    document.getElementById('demandName').value = '';
+    document.getElementById('demandType').value = '需求';
+    document.getElementById('demandStart').value = '';
+    document.getElementById('demandEnd').value = '';
+    document.getElementById('demandHours').value = '';
+    document.getElementById('demandDesc').value = '';
+    document.getElementById('demandModal').classList.add('active');
+}
+function saveDemand() {
+    var id = document.getElementById('demandId').value;
+    var data = { demandName: document.getElementById('demandName').value, demandType: document.getElementById('demandType').value,
+        projectId: document.getElementById('demandProject').value || null, priority: parseInt(document.getElementById('demandPriority').value),
+        startDate: document.getElementById('demandStart').value || null, endDate: document.getElementById('demandEnd').value || null,
+        totalHours: parseFloat(document.getElementById('demandHours').value) || 0, description: document.getElementById('demandDesc').value };
+    if (!data.demandName) { alert('请输入需求名称'); return; }
+    if (id) data.id = parseInt(id);
+    api('/api/demand', id ? 'PUT' : 'POST', data).then(function(res) {
+        if (res.code === 200) { closeModal('demandModal'); loadSchedule(); } else alert(res.msg);
+    });
+}
+
+window.addEventListener('resize', function() { positionAllCrossDayBars(); });
+init();
+</script>
+</body>
+</html>

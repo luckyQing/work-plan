@@ -1,12 +1,14 @@
 package io.github.luckyqing.controller;
 
 import io.github.luckyqing.common.R;
+import io.github.luckyqing.vo.user.ChangePasswordReqVO;
 import io.github.luckyqing.vo.user.UserListReqVO;
 import io.github.luckyqing.vo.user.UserRespVO;
 import io.github.luckyqing.vo.user.UserSaveReqVO;
 import io.github.luckyqing.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
 
@@ -76,5 +78,14 @@ public class SysUserController {
     public R<Void> delete(@PathVariable Long id) {
         userService.removeById(id);
         return R.ok();
+    }
+
+    /**
+     * 修改个人密码
+     */
+    @PostMapping("/changePassword")
+    public R<Void> changePassword(@Valid @RequestBody ChangePasswordReqVO reqVO, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return userService.changePassword(userId, reqVO);
     }
 }

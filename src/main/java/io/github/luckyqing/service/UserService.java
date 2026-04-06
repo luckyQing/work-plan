@@ -9,6 +9,7 @@ import io.github.luckyqing.mapper.UserMapper;
 import io.github.luckyqing.vo.user.UserListReqVO;
 import io.github.luckyqing.vo.user.UserRespVO;
 import io.github.luckyqing.vo.user.UserSaveReqVO;
+import io.github.luckyqing.vo.user.ChangePasswordReqVO;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -57,6 +58,25 @@ public class UserService extends ServiceImpl<UserMapper, User> {
     public List<User> listByDept(String dept) {
         return list(new LambdaQueryWrapper<User>()
                 .eq(dept != null && !dept.isEmpty(), User::getDept, dept));
+    }
+
+    /**
+     * 修改个人密码
+     */
+    public R<Void> changePassword(Long userId, ChangePasswordReqVO reqVO) {
+        if (!reqVO.getNewPassword().equals(reqVO.getConfirmPassword())) {
+            return R.fail("两次输入的新密码不一致");
+        }
+        User user = getById(userId);
+        if (user == null) return R.fail("用户不存在");
+        if (!DigestUtil.md5Hex(reqVO.getOldPassword()).equals(user.getPassword())) {
+            return R.fail("原密码错误");
+        }
+        User update = new User();
+        update.setId(userId);
+        update.setPassword(DigestUtil.md5Hex(reqVO.getNewPassword()));
+        updateById(update);
+        return R.ok();
     }
 
     private UserRespVO toRespVO(User user) {

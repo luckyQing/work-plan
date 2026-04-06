@@ -199,6 +199,15 @@ var scheduleData = [];
 var allExpanded = false;
 var WEEK_DAYS = ["周日","周一","周二","周三","周四","周五","周六"];
 
+/** 判断当前用户是否可以编辑/删除指定人员的任务 */
+function canEditPersonTask(personUserId) {
+    if (!currentUser) return false;
+    // 管理员可以操作所有人的任务
+    if (currentUser.role === 'ADMIN') return true;
+    // 非管理员只能操作自己的任务
+    return currentUser.userId == personUserId;
+}
+
 function api(url, method, body) {
     var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json' } };
     if (token) opts.headers['Authorization'] = 'Bearer ' + token;
@@ -383,6 +392,9 @@ function render() {
         tbody.appendChild(tr);
         var cells = tr.querySelectorAll('td');
 
+        // 设置当前渲染的人员ID，供 click 绑定时判断权限
+        window._currentPersonUserId = person.userId;
+
         // 用泳道算法分配行，确保重叠任务错开
         var laneItems = allocateLanes(person.tasks, weekDates);
         // 计算总 lane 数
@@ -473,6 +485,8 @@ function bindSubTaskClicks(container, subTasks) {
 }
 
 function renderSingleDayTask(container, task) {
+    var personUserId = window._currentPersonUserId;
+    var editable = canEditPersonTask(personUserId);
     var hasSubs = task.subTasks && task.subTasks.length > 0;
     var html = '<div class="main-task"><div class="task-header' + (hasSubs ? '' : ' no-subtasks') + '">';
     html += '<span class="expand-icon' + (hasSubs ? '' : ' hidden') + '">▼</span>';
@@ -493,8 +507,8 @@ function renderSingleDayTask(container, task) {
     }
     html += '</div>';
     container.insertAdjacentHTML('beforeend', html);
-    // 独立任务：绑定主任务条点击
-    if (task.taskId) {
+    // 独立任务：绑定主任务条点击（仅可编辑时）
+    if (editable && task.taskId) {
         var mainEl = container.lastElementChild;
         var mainBar = mainEl.querySelector('.task-header > .progress-bar');
         if (mainBar && !mainBar._taskClickBound) {
@@ -506,8 +520,8 @@ function renderSingleDayTask(container, task) {
             });
         }
     }
-    // 子任务：逐个绑定
-    if (hasSubs) {
+    // 子任务：逐个绑定（仅可编辑时）
+    if (editable && hasSubs) {
         var mainEl2 = container.lastElementChild;
         var subEls = mainEl2.querySelectorAll('.sub-task');
         task.subTasks.forEach(function(s, idx) {
@@ -550,6 +564,8 @@ function renderCrossDayPlaceholder(container, task, col, item, weekDates) {
 }
 
 function renderCrossDayBar(cells, startContainer, task, item, weekDates) {
+    var personUserId = window._currentPersonUserId;
+    var editable = canEditPersonTask(personUserId);
     var hasSubs = task.subTasks && task.subTasks.length > 0;
     var subInfos = [];
     if (hasSubs) {
@@ -575,9 +591,9 @@ function renderCrossDayBar(cells, startContainer, task, item, weekDates) {
     }
     bar += '</div>';
     startContainer.insertAdjacentHTML('beforeend', bar);
-    // 绑定跨天条上的点击事件（闭包持有 taskId）
+    // 绑定跨天条上的点击事件（仅可编辑时）
     var barEl = startContainer.lastElementChild;
-    if (task.taskId) {
+    if (editable && task.taskId) {
         var mainBar = barEl.querySelector('.task-header > .progress-bar');
         if (mainBar) {
             mainBar.classList.add('clickable');
@@ -587,8 +603,8 @@ function renderCrossDayBar(cells, startContainer, task, item, weekDates) {
             });
         }
     }
-    // 子任务点击
-    if (hasSubs) {
+    // 子任务点击（仅可编辑时）
+    if (editable && hasSubs) {
         var subEls = barEl.querySelectorAll('.sub-task');
         task.subTasks.forEach(function(s, idx) {
             if (!s.taskId || idx >= subEls.length) return;
@@ -732,7 +748,7 @@ function editTaskFromPopup() {
                 });
             }
         });
-        api('/api/demand/list').then(function(r) {
+        api('/api/demand/active').then(function(r) {
             if (r.code === 200) {
                 var sel = document.getElementById('taskDemandId');
                 sel.innerHTML = '<option value="">无（独立任务）</option>';
@@ -798,7 +814,7 @@ function showTaskModal() {
             });
         }
     });
-    api('/api/demand/list').then(function(res) {
+    api('/api/demand/active').then(function(res) {
         if (res.code === 200) {
             var sel = document.getElementById('taskDemandId');
             sel.innerHTML = '<option value="">无（独立任务）</option>';

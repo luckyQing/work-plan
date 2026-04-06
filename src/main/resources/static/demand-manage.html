@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="css/layout.css">
     <style>
         .page-content { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .page-header h3 { font-size: 20px; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 10px; }
+        .search-box { display: flex; gap: 8px; align-items: center; }
         .btn { padding: 6px 16px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; font-size: 14px; background: #fff; }
         .btn:hover { background: #f5f5f5; }
         .btn-primary { background: #1890ff; color: #fff; border-color: #1890ff; }
@@ -44,6 +44,12 @@
         .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
         .form-row { display: flex; gap: 12px; }
         .form-row .form-group { flex: 1; }
+        /* 分页 */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; }
+        .pagination .page-btn { min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; font-size: 14px; background: #fff; }
+        .pagination .page-btn:hover { color: #1890ff; border-color: #1890ff; }
+        .pagination .page-btn.active { color: #fff; background: #1890ff; border-color: #1890ff; }
+        .pagination .page-btn.disabled { color: #d9d9d9; cursor: not-allowed; }
         /* 多选组件 */
         .multi-select-box {
             border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px 8px; min-height: 36px;
@@ -65,9 +71,13 @@
 <script src="js/layout.js"></script>
 <div class="main-content">
 <div class="page-content">
-    <div class="page-header">
-        <h3>需求管理</h3>
+    <div class="toolbar">
         <button class="btn btn-primary" onclick="showAddModal()">新增需求</button>
+        <div class="search-box">
+            <input type="text" class="btn" id="searchKeyword" placeholder="需求名称模糊查询" style="width:200px;" onkeydown="if(event.key==='Enter')searchDemands()">
+            <button class="btn btn-primary" onclick="searchDemands()">查询</button>
+            <button class="btn" onclick="clearSearch()">重置</button>
+        </div>
     </div>
     <table class="data-table">
         <thead>
@@ -78,6 +88,7 @@
         </thead>
         <tbody id="demandTableBody"></tbody>
     </table>
+    <div class="pagination" id="pagination"></div>
 </div>
 
 <!-- 新增/编辑弹窗 -->
@@ -164,6 +175,7 @@
 </div>
 </div><!-- /main-content -->
 
+<script src="js/pagination.js"></script>
 <script>
 var token = localStorage.getItem('token');
 var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
@@ -171,8 +183,22 @@ if (!token) { location.href = 'login.html'; }
 
 var dictData = {};
 var allUsers = [];
+var allDemands = []; // 缓存全量数据，用于前端模糊查询
 var PRIORITY_STYLES = { '0': 'priority-low', '1': 'priority-mid', '2': 'priority-high' };
 var STATUS_STYLES = { '0': 'status-0', '1': 'status-1', '2': 'status-2' };
+
+/* 搜索/重置 — 提前定义确保 onclick 可以找到 */
+var demandPager; // 在 loadAndInit 后初始化
+
+function searchDemands() {
+    var kw = document.getElementById('searchKeyword').value.trim().toLowerCase();
+    if (!kw) { demandPager.reset(); return; }
+    demandPager.filter(kw, 'demandName');
+}
+function clearSearch() {
+    document.getElementById('searchKeyword').value = '';
+    demandPager.reset();
+}
 // 多选状态
 var msSelected = { product: [], test: [], dev: [] };
 var msDropdown = null;
@@ -297,38 +323,54 @@ function loadProjects() {
     });
 }
 function loadUsers() {
-    api('/api/user/list').then(function(res) {
+    return api('/api/user/list').then(function(res) {
         if (res.code === 200) allUsers = res.data || [];
     });
 }
+
 function loadDemands() {
     api('/api/demand/list').then(function(res) {
         if (res.code !== 200) return;
-        var tbody = document.getElementById('demandTableBody');
-        tbody.innerHTML = '';
-        res.data.forEach(function(d) {
-            var pLabel = getDictLabel('priority', d.priority);
-            var pStyle = PRIORITY_STYLES[String(d.priority)] || 'priority-mid';
-            var sLabel = getDictLabel('demand_status', d.status);
-            var sStyle = STATUS_STYLES[String(d.status)] || 'status-0';
-            var period = (d.startDate || '-') + ' ~ ' + (d.endDate || '-');
-            var devNames = getNamesByIds(d.devMembers);
-            tbody.innerHTML += '<tr>' +
-                '<td>' + d.id + '</td>' +
-                '<td>' + d.demandName + '</td>' +
-                '<td>' + getDictLabel('demand_type', d.demandType) + '</td>' +
-                '<td>' + (d.projectName || '-') + '</td>' +
-                '<td><span class="priority-tag ' + pStyle + '">' + pLabel + '</span></td>' +
-                '<td><span class="status-tag ' + sStyle + '">' + sLabel + '</span></td>' +
-                '<td>' + period + '</td>' +
-                '<td>' + (d.totalHours || 0) + 'h</td>' +
-                '<td>' + (devNames || '-') + '</td>' +
-                '<td>' + (d.creatorName || '-') + '</td>' +
-                '<td class="actions">' +
-                    '<button class="btn btn-sm btn-primary" onclick="showEditModal(' + d.id + ')">编辑</button>' +
-                    '<button class="btn btn-sm btn-danger" onclick="deleteDemand(' + d.id + ')">删除</button>' +
-                '</td></tr>';
-        });
+        allDemands = res.data || [];
+        if (!demandPager) {
+            demandPager = new Pagination({
+                containerId: 'pagination',
+                pageSize: 15,
+                onRender: function(pageData) { renderDemandRows(pageData); }
+            });
+        }
+        demandPager.setData(allDemands);
+    });
+}
+
+function renderDemandRows(list) {
+    var tbody = document.getElementById('demandTableBody');
+    tbody.innerHTML = '';
+    if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#999;padding:30px;">暂无数据</td></tr>'; return; }
+    list.forEach(function(d) {
+        var pLabel = getDictLabel('priority', d.priority);
+        var pStyle = PRIORITY_STYLES[String(d.priority)] || 'priority-mid';
+        var sLabel = getDictLabel('demand_status', d.status);
+        var sStyle = STATUS_STYLES[String(d.status)] || 'status-0';
+        var period = (d.startDate || '-') + ' ~ ' + (d.endDate || '-');
+        var devNames = getNamesByIds(d.devMembers);
+        tbody.innerHTML += '<tr>' +
+            '<td>' + d.id + '</td>' +
+            '<td>' + d.demandName + '</td>' +
+            '<td>' + getDictLabel('demand_type', d.demandType) + '</td>' +
+            '<td>' + (d.projectName || '-') + '</td>' +
+            '<td><span class="priority-tag ' + pStyle + '">' + pLabel + '</span></td>' +
+            '<td><span class="status-tag ' + sStyle + '">' + sLabel + '</span></td>' +
+            '<td>' + period + '</td>' +
+            '<td>' + (d.totalHours || 0) + 'h</td>' +
+            '<td>' + (devNames || '-') + '</td>' +
+            '<td>' + (d.creatorName || '-') + '</td>' +
+            '<td class="actions">' +
+                (d.status == 10 ? '<button class="btn btn-sm" style="background:#1890ff;color:#fff;border-color:#1890ff;" onclick="startDemand(' + d.id + ')">开始</button>' : '') +
+                (d.status == 20 ? '<button class="btn btn-sm" style="background:#52c41a;color:#fff;border-color:#52c41a;" onclick="completeDemand(' + d.id + ')">完成</button>' : '') +
+                '<button class="btn btn-sm btn-primary" onclick="showEditModal(' + d.id + ')">编辑</button>' +
+                '<button class="btn btn-sm btn-danger" onclick="deleteDemand(' + d.id + ')">删除</button>' +
+            '</td></tr>';
     });
 }
 function getNamesByIds(ids) {
@@ -434,6 +476,20 @@ function deleteDemand(id) {
     });
 }
 
+function startDemand(id) {
+    if (!confirm('确定开始该需求？')) return;
+    api('/api/demand/' + id + '/start', 'POST').then(function(res) {
+        if (res.code === 200) loadDemands(); else alert(res.msg);
+    });
+}
+
+function completeDemand(id) {
+    if (!confirm('确定完成该需求？需求下所有任务必须已完成。')) return;
+    api('/api/demand/' + id + '/complete', 'POST').then(function(res) {
+        if (res.code === 200) loadDemands(); else alert(res.msg);
+    });
+}
+
 function loadAndInit() {
     api('/api/config/all').then(function(res) {
         if (res.code === 200) dictData = res.data || {};
@@ -441,8 +497,8 @@ function loadAndInit() {
         fillSelect('formPriority', 'priority', '1');
         fillSelect('formDemandStatus', 'demand_status', '0');
         loadProjects();
-        loadUsers();
-        loadDemands();
+        // 先加载用户列表，再加载需求，确保 getNamesByIds 能正确转换
+        loadUsers().then(function() { loadDemands(); });
     });
 }
 loadAndInit();

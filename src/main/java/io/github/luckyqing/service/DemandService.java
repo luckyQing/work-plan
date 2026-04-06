@@ -1,10 +1,14 @@
 package io.github.luckyqing.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.github.luckyqing.common.R;
 import io.github.luckyqing.entity.Demand;
+import io.github.luckyqing.entity.Task;
 import io.github.luckyqing.mapper.DemandMapper;
 import io.github.luckyqing.vo.demand.DemandRespVO;
 import io.github.luckyqing.vo.demand.DemandSaveReqVO;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -108,5 +112,56 @@ public class DemandService extends ServiceImpl<DemandMapper, Demand> {
         demand.setTestMembers(reqVO.getTestMembers());
         demand.setDevMembers(reqVO.getDevMembers());
         return demand;
+    }
+
+    @Autowired
+    private TaskService taskService;
+
+    /** 需求状态值常量（与字典 demand_status 的 config_value 对应） */
+    private static final int STATUS_TODO = 10;
+    private static final int STATUS_DOING = 20;
+    private static final int STATUS_DONE = 30;
+
+    /** 开始需求 */
+    public R<Void> startDemand(Long id) {
+        Demand demand = getById(id);
+        if (demand == null) return R.fail("需求不存在");
+        if (demand.getStatus() != null && demand.getStatus() != STATUS_TODO) {
+            return R.fail("只有待开始的需求才能开始");
+        }
+        Demand update = new Demand();
+        update.setId(id);
+        update.setStatus(STATUS_DOING);
+        updateById(update);
+        return R.ok();
+    }
+
+    /** 完成需求（需所有子任务已完成） */
+    public R<Void> completeDemand(Long id) {
+        Demand demand = getById(id);
+        if (demand == null) return R.fail("需求不存在");
+        if (demand.getStatus() == null || demand.getStatus() != STATUS_DOING) {
+            return R.fail("只有进行中的需求才能完成");
+        }
+        // 检查该需求下是否有未完成的任务
+        long unfinished = taskService.count(new LambdaQueryWrapper<Task>()
+                .eq(Task::getDemandId, id)
+                .ne(Task::getStatus, 2)); // status=2 表示已完成
+        if (unfinished > 0) {
+            return R.fail("该需求下还有 " + unfinished + " 个未完成的任务，无法完成");
+        }
+        Demand update = new Demand();
+        update.setId(id);
+        update.setStatus(STATUS_DONE);
+        updateById(update);
+        return R.ok();
+    }
+
+    /** 查询进行中的需求（周排期录入任务用） */
+    public List<DemandRespVO> listActiveDemands() {
+        List<Demand> list = list(new LambdaQueryWrapper<Demand>()
+                .eq(Demand::getStatus, STATUS_DOING)
+                .orderByDesc(Demand::getCreateTime));
+        return list.stream().map(this::toRespVO).collect(Collectors.toList());
     }
 }

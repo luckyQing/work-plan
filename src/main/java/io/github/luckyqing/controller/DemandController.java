@@ -80,4 +80,22 @@ public class DemandController {
         demandService.removeById(id);
         return R.ok();
     }
+
+    /** 开始需求（待开始 → 进行中） */
+    @PostMapping("/{id}/start")
+    public R<Void> start(@PathVariable Long id) {
+        return demandService.startDemand(id);
+    }
+
+    /** 完成需求（进行中 → 已完成，需所有子任务已完成） */
+    @PostMapping("/{id}/complete")
+    public R<Void> complete(@PathVariable Long id) {
+        return demandService.completeDemand(id);
+    }
+
+    /** 查询进行中的需求（周排期录入任务用） */
+    @GetMapping("/active")
+    public R<List<DemandRespVO>> listActive() {
+        return R.ok(demandService.listActiveDemands());
+    }
 }

@@ -2,6 +2,8 @@ server:
   port: 8080
 
 spring:
+  aop:
+    proxy-target-class: true  # 强制使用 CGLIB 代理，解决 Shiro 注解与 ServiceImpl 的代理冲突
   jackson:
     serialization:
       write-dates-as-timestamps: false

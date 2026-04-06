@@ -1,41 +1,33 @@
 /**
  * 公共布局脚本
- * 生成左侧导航栏，处理收缩/展开、高亮当前页、登出、修改密码
+ * 左侧导航根据用户菜单权限动态渲染
  */
 (function() {
     var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
     var token = localStorage.getItem('token');
     if (!token) { location.href = 'login.html'; return; }
 
-    var menus = [
-        { href: 'dashboard.html',    icon: '🏠', label: '工作台' },
-        { href: 'week-view.html',    icon: '📅', label: '周排期' },
-        { href: 'demand-manage.html', icon: '📋', label: '需求管理' },
-        { href: 'user-manage.html',  icon: '👥', label: '人员管理' },
-        { href: 'config-manage.html', icon: '⚙️', label: '字典配置' }
+    // 完整菜单定义（前端维护顺序和图标）
+    var ALL_MENUS = [
+        { path: 'dashboard.html',        icon: '🏠', label: '工作台' },
+        { path: 'week-view.html',        icon: '📅', label: '周排期' },
+        { path: 'demand-manage.html',    icon: '📋', label: '需求管理' },
+        { path: 'user-manage.html',      icon: '👥', label: '人员管理' },
+        { path: 'role-manage.html',      icon: '🔑', label: '角色管理' },
+        { path: 'permission-manage.html', icon: '🛡️', label: '权限管理' },
+        { path: 'config-manage.html',    icon: '⚙️', label: '字典配置' }
     ];
 
     var currentPage = location.pathname.split('/').pop() || 'index.html';
     var collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-
-    function toggleIcon(isCollapsed) { return isCollapsed ? '›' : '‹'; }
+    function toggleIcon(c) { return c ? '›' : '‹'; }
 
     var sidebar = document.createElement('div');
     sidebar.className = 'sidebar' + (collapsed ? ' collapsed' : '');
     sidebar.innerHTML =
         '<div class="sidebar-inner">' +
-            '<div class="logo">' +
-                '<span class="logo-icon">📊</span>' +
-                '<span class="logo-text">任务排期管理</span>' +
-            '</div>' +
-            '<div class="nav-menu">' +
-                menus.map(function(m) {
-                    var active = currentPage === m.href ? ' active' : '';
-                    return '<a class="nav-item' + active + '" href="' + m.href + '">' +
-                        '<span class="nav-icon">' + m.icon + '</span>' +
-                        '<span class="nav-label">' + m.label + '</span></a>';
-                }).join('') +
-            '</div>' +
+            '<div class="logo"><span class="logo-icon">📊</span><span class="logo-text">任务排期管理</span></div>' +
+            '<div class="nav-menu" id="sidebarNavMenu"></div>' +
             '<div class="user-area">' +
                 '<span class="user-icon">👤</span>' +
                 '<span class="user-name user-name-btn" title="修改密码">' + (currentUser ? currentUser.realName : '') + '</span>' +
@@ -43,8 +35,40 @@
             '</div>' +
         '</div>' +
         '<div class="toggle-btn" title="收缩/展开导航">' + toggleIcon(collapsed) + '</div>';
-
     document.body.insertBefore(sidebar, document.body.firstChild);
+
+    function renderMenus(allowedPaths) {
+        var navMenu = document.getElementById('sidebarNavMenu');
+        // 根据后端返回的菜单路径过滤，只显示有权限的菜单
+        var visibleMenus = ALL_MENUS.filter(function(m) {
+            return allowedPaths.indexOf(m.path) >= 0;
+        });
+        if (visibleMenus.length === 0) {
+            navMenu.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:13px;padding:16px;text-align:center;">暂无菜单权限</div>';
+            return;
+        }
+        navMenu.innerHTML = visibleMenus.map(function(m) {
+            var active = currentPage === m.path ? ' active' : '';
+            return '<a class="nav-item' + active + '" href="' + m.path + '">' +
+                '<span class="nav-icon">' + m.icon + '</span>' +
+                '<span class="nav-label">' + m.label + '</span></a>';
+        }).join('');
+    }
+
+    // 异步加载用户菜单权限，提取 permPath 列表做匹配
+    fetch('/api/permission/menus', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) { return r.json(); }).then(function(res) {
+        if (res.code === 200 && res.data) {
+            var paths = res.data.map(function(m) { return m.permPath; }).filter(Boolean);
+            renderMenus(paths);
+        } else {
+            // 接口异常，降级显示基础菜单
+            renderMenus(['dashboard.html', 'week-view.html']);
+        }
+    }).catch(function() {
+        renderMenus(['dashboard.html', 'week-view.html']);
+    });
 
     // 收缩/展开
     sidebar.querySelector('.toggle-btn').addEventListener('click', function() {
@@ -63,10 +87,8 @@
         location.href = 'login.html';
     });
 
-    // 点击用户名 → 修改密码弹窗
-    sidebar.querySelector('.user-name-btn').addEventListener('click', function() {
-        showChangePwdModal();
-    });
+    // 修改密码
+    sidebar.querySelector('.user-name-btn').addEventListener('click', function() { showChangePwdModal(); });
 
     // ===== 修改密码弹窗 =====
     var modal = document.createElement('div');

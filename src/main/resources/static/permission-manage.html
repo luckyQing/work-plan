@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>权限管理 - 任务排期管理系统</title>
+    <link rel="stylesheet" href="css/layout.css">
+    <style>
+        .page-content { padding: 20px 24px; max-width: 1300px; margin: 0 auto; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 10px; }
+        .search-box { display: flex; gap: 8px; align-items: center; }
+        .btn { padding: 6px 16px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; font-size: 14px; background: #fff; }
+        .btn:hover { background: #f5f5f5; }
+        .btn-primary { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .btn-primary:hover { background: #40a9ff; }
+        .btn-danger { background: #ff4d4f; color: #fff; border-color: #ff4d4f; }
+        .btn-danger:hover { background: #ff7875; }
+        .btn-sm { padding: 3px 10px; font-size: 12px; }
+        .data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .data-table th { background: #fafafa; padding: 12px 16px; text-align: left; font-weight: 600; border-bottom: 1px solid #e8e8e8; font-size: 14px; }
+        .data-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+        .data-table tr:hover td { background: #e6f7ff; }
+        .actions { display: flex; gap: 8px; }
+        .type-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+        .type-menu { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+        .type-api  { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+        .type-page { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+        /* 分页 */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; }
+        .pagination .page-btn {
+            min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+            border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; font-size: 14px; background: #fff;
+        }
+        .pagination .page-btn:hover { color: #1890ff; border-color: #1890ff; }
+        .pagination .page-btn.active { color: #fff; background: #1890ff; border-color: #1890ff; }
+        .pagination .page-btn.disabled { color: #d9d9d9; cursor: not-allowed; }
+        .pagination .page-info { font-size: 13px; color: #999; margin: 0 8px; }
+        /* 弹窗 */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 8px; padding: 24px; width: 520px; max-width: 90%; }
+        .modal h3 { margin-bottom: 20px; font-size: 18px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 14px; color: #666; }
+        .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .form-row { display: flex; gap: 12px; }
+        .form-row .form-group { flex: 1; }
+    </style>
+</head>
+<body>
+<script src="js/layout.js"></script>
+<div class="main-content">
+<div class="page-content">
+    <div class="toolbar">
+        <button class="btn btn-primary" onclick="showAddPermModal()">新增权限</button>
+        <div class="search-box">
+            <input type="text" class="btn" id="searchKeyword" placeholder="权限名称模糊查询" style="width:200px;" onkeydown="if(event.key==='Enter')searchPerms()">
+            <button class="btn btn-primary" onclick="searchPerms()">查询</button>
+            <button class="btn" onclick="clearSearch()">重置</button>
+        </div>
+    </div>
+    <table class="data-table">
+        <thead><tr><th>权限标识</th><th>权限名称</th><th>类型</th><th>路径</th><th>排序</th><th>操作</th></tr></thead>
+        <tbody id="permTableBody"></tbody>
+    </table>
+    <div class="pagination" id="pagination"></div>
+</div>
+</div>
+
+<!-- 新增/编辑权限弹窗 -->
+<div class="modal-overlay" id="permModal">
+    <div class="modal">
+        <h3 id="permModalTitle">新增权限</h3>
+        <input type="hidden" id="permId">
+        <div class="form-group"><label>权限标识（如 user:list）</label><input type="text" id="formPermCode" placeholder="模块:操作"></div>
+        <div class="form-group"><label>权限名称</label><input type="text" id="formPermName"></div>
+        <div class="form-row">
+            <div class="form-group"><label>权限类型</label>
+                <select id="formPermType"><option value="menu">菜单权限</option><option value="api">接口权限</option><option value="page">页面权限</option></select>
+            </div>
+            <div class="form-group"><label>排序号</label><input type="number" id="formPermSort" value="0" min="0"></div>
+        </div>
+        <div class="form-group"><label>路径</label><input type="text" id="formPermPath" placeholder="如 /api/user/list 或 user-manage.html"></div>
+        <div class="form-actions">
+            <button class="btn" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" onclick="savePerm()">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var token = localStorage.getItem('token');
+var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+if (!token) { location.href = 'login.html'; }
+
+var TYPE_LABELS = { menu: '菜单', api: '接口', page: '页面' };
+var TYPE_CLS    = { menu: 'type-menu', api: 'type-api', page: 'type-page' };
+
+var allPerms = [];      // 全量数据
+var filteredPerms = []; // 搜索后的数据
+var pageSize = 15;
+var currentPage = 1;
+
+function api(url, method, body) {
+    var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json' } };
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(url, opts).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.code === 401) { localStorage.removeItem('token'); localStorage.removeItem('currentUser'); location.href = 'login.html'; throw new Error('未登录'); }
+        return data;
+    });
+}
+function closeModal() { document.getElementById('permModal').classList.remove('active'); }
+
+function loadPerms() {
+    api('/api/permission/list').then(function(res) {
+        if (res.code !== 200) return;
+        allPerms = res.data || [];
+        filteredPerms = allPerms;
+        currentPage = 1;
+        renderPage();
+    });
+}
+
+function searchPerms() {
+    var kw = document.getElementById('searchKeyword').value.trim().toLowerCase();
+    if (!kw) { filteredPerms = allPerms; }
+    else { filteredPerms = allPerms.filter(function(p) { return p.permName && p.permName.toLowerCase().indexOf(kw) >= 0; }); }
+    currentPage = 1;
+    renderPage();
+}
+
+function clearSearch() {
+    document.getElementById('searchKeyword').value = '';
+    filteredPerms = allPerms;
+    currentPage = 1;
+    renderPage();
+}
+
+function renderPage() {
+    var total = filteredPerms.length;
+    var totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+    var start = (currentPage - 1) * pageSize;
+    var pageData = filteredPerms.slice(start, start + pageSize);
+
+    // 渲染表格
+    var tbody = document.getElementById('permTableBody');
+    tbody.innerHTML = '';
+    if (pageData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:30px;">暂无数据</td></tr>';
+    } else {
+        pageData.forEach(function(p) {
+            var tc = TYPE_CLS[p.permType] || '';
+            var tl = TYPE_LABELS[p.permType] || p.permType;
+            tbody.innerHTML += '<tr>' +
+                '<td><code>' + p.permCode + '</code></td>' +
+                '<td>' + p.permName + '</td>' +
+                '<td><span class="type-tag ' + tc + '">' + tl + '</span></td>' +
+                '<td>' + (p.permPath || '-') + '</td>' +
+                '<td>' + (p.sortOrder || 0) + '</td>' +
+                '<td class="actions">' +
+                    '<button class="btn btn-sm btn-primary" onclick="showEditPermModal(' + p.id + ')">编辑</button>' +
+                    '<button class="btn btn-sm btn-danger" onclick="deletePerm(' + p.id + ')">删除</button>' +
+                '</td></tr>';
+        });
+    }
+
+    // 渲染分页
+    var pag = document.getElementById('pagination');
+    var html = '';
+    html += '<span class="page-info">共 ' + total + ' 条</span>';
+    html += '<span class="page-btn' + (currentPage <= 1 ? ' disabled' : '') + '" onclick="goPage(' + (currentPage - 1) + ')">‹</span>';
+    // 页码按钮（最多显示7个）
+    var startP = Math.max(1, currentPage - 3);
+    var endP = Math.min(totalPages, startP + 6);
+    if (endP - startP < 6) startP = Math.max(1, endP - 6);
+    for (var i = startP; i <= endP; i++) {
+        html += '<span class="page-btn' + (i === currentPage ? ' active' : '') + '" onclick="goPage(' + i + ')">' + i + '</span>';
+    }
+    html += '<span class="page-btn' + (currentPage >= totalPages ? ' disabled' : '') + '" onclick="goPage(' + (currentPage + 1) + ')">›</span>';
+    pag.innerHTML = html;
+}
+
+function goPage(page) {
+    var totalPages = Math.max(1, Math.ceil(filteredPerms.length / pageSize));
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderPage();
+}
+
+/* 新增/编辑 */
+function showAddPermModal() {
+    document.getElementById('permModalTitle').textContent = '新增权限';
+    document.getElementById('permId').value = '';
+    document.getElementById('formPermCode').value = '';
+    document.getElementById('formPermCode').disabled = false;
+    document.getElementById('formPermName').value = '';
+    document.getElementById('formPermType').value = 'api';
+    document.getElementById('formPermSort').value = '0';
+    document.getElementById('formPermPath').value = '';
+    document.getElementById('permModal').classList.add('active');
+}
+
+function showEditPermModal(id) {
+    var perm = allPerms.find(function(p) { return p.id === id; });
+    if (!perm) return;
+    document.getElementById('permModalTitle').textContent = '编辑权限';
+    document.getElementById('permId').value = perm.id;
+    document.getElementById('formPermCode').value = perm.permCode;
+    document.getElementById('formPermCode').disabled = true;
+    document.getElementById('formPermName').value = perm.permName;
+    document.getElementById('formPermType').value = perm.permType;
+    document.getElementById('formPermSort').value = perm.sortOrder || 0;
+    document.getElementById('formPermPath').value = perm.permPath || '';
+    document.getElementById('permModal').classList.add('active');
+}
+
+function savePerm() {
+    var id = document.getElementById('permId').value;
+    var data = {
+        permCode: document.getElementById('formPermCode').value,
+        permName: document.getElementById('formPermName').value,
+        permType: document.getElementById('formPermType').value,
+        permPath: document.getElementById('formPermPath').value,
+        sortOrder: parseInt(document.getElementById('formPermSort').value) || 0,
+        status: 1
+    };
+    if (!data.permCode || !data.permName) { alert('请填写权限标识和名称'); return; }
+    if (id) data.id = parseInt(id);
+    api('/api/permission', id ? 'PUT' : 'POST', data).then(function(res) {
+        if (res.code === 200) { closeModal(); loadPerms(); }
+        else { alert(res.msg); }
+    });
+}
+
+function deletePerm(id) {
+    if (!confirm('确定删除该权限？')) return;
+    api('/api/permission/' + id, 'DELETE').then(function(res) {
+        if (res.code === 200) loadPerms();
+        else alert(res.msg);
+    });
+}
+
+loadPerms();
+</script>
+</body>
+</html>

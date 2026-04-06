@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色管理 - 任务排期管理系统</title>
+    <link rel="stylesheet" href="css/layout.css">
+    <style>
+        .page-content { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 10px; }
+        .search-box { display: flex; gap: 8px; align-items: center; }
+        .btn { padding: 6px 16px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; font-size: 14px; background: #fff; }
+        .btn:hover { background: #f5f5f5; }
+        .btn-primary { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .btn-primary:hover { background: #40a9ff; }
+        .btn-danger { background: #ff4d4f; color: #fff; border-color: #ff4d4f; }
+        .btn-danger:hover { background: #ff7875; }
+        .btn-sm { padding: 3px 10px; font-size: 12px; }
+        .data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .data-table th { background: #fafafa; padding: 12px 16px; text-align: left; font-weight: 600; border-bottom: 1px solid #e8e8e8; font-size: 14px; }
+        .data-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+        .data-table tr:hover td { background: #e6f7ff; }
+        .actions { display: flex; gap: 8px; }
+        .status-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+        .status-on { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+        .status-off { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 8px; padding: 24px; width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal h3 { margin-bottom: 20px; font-size: 18px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 14px; color: #666; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; }
+        .form-group textarea { height: 70px; resize: vertical; }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        /* 权限树 */
+        .perm-tree { max-height: 400px; overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 4px; padding: 8px; }
+        .perm-group { margin-bottom: 12px; }
+        .perm-group-title { font-weight: 600; font-size: 13px; color: #555; margin-bottom: 6px; padding: 4px 8px; background: #f5f5f5; border-radius: 3px; }
+        .perm-items { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 8px; }
+        .perm-item { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+        .perm-item input[type=checkbox] { cursor: pointer; }
+    </style>
+</head>
+<body>
+<script src="js/layout.js"></script>
+<div class="main-content">
+<div class="page-content">
+    <div class="toolbar">
+        <button class="btn btn-primary" onclick="showAddModal()">新增角色</button>
+        <div class="search-box">
+            <input type="text" class="btn" id="searchKeyword" placeholder="角色名称模糊查询" style="width:200px;" onkeydown="if(event.key==='Enter')searchRoles()">
+            <button class="btn btn-primary" onclick="searchRoles()">查询</button>
+            <button class="btn" onclick="clearSearch()">重置</button>
+        </div>
+    </div>
+    <table class="data-table">
+        <thead><tr><th>ID</th><th>角色标识</th><th>角色名称</th><th>描述</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody id="roleTableBody"></tbody>
+    </table>
+</div>
+
+<!-- 新增/编辑角色弹窗 -->
+<div class="modal-overlay" id="roleModal">
+    <div class="modal">
+        <h3 id="roleModalTitle">新增角色</h3>
+        <input type="hidden" id="roleId">
+        <div class="form-group"><label>角色标识（如 ADMIN）</label><input type="text" id="formRoleCode" placeholder="英文大写，如 ADMIN"></div>
+        <div class="form-group"><label>角色名称</label><input type="text" id="formRoleName"></div>
+        <div class="form-group"><label>描述</label><textarea id="formRoleDesc"></textarea></div>
+        <div class="form-group"><label>状态</label>
+            <select id="formRoleStatus"><option value="1">启用</option><option value="0">禁用</option></select>
+        </div>
+        <div class="form-actions">
+            <button class="btn" onclick="closeModal('roleModal')">取消</button>
+            <button class="btn btn-primary" onclick="saveRole()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 分配权限弹窗 -->
+<div class="modal-overlay" id="permModal">
+    <div class="modal">
+        <h3>分配权限</h3>
+        <input type="hidden" id="permRoleId">
+        <div class="perm-tree" id="permTree"></div>
+        <div class="form-actions">
+            <button class="btn" onclick="closeModal('permModal')">取消</button>
+            <button class="btn btn-primary" onclick="savePermissions()">保存</button>
+        </div>
+    </div>
+</div>
+</div><!-- /main-content -->
+
+<script>
+var token = localStorage.getItem('token');
+var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+if (!token) { location.href = 'login.html'; }
+
+function api(url, method, body) {
+    var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json' } };
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(url, opts).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.code === 401) { localStorage.removeItem('token'); localStorage.removeItem('currentUser'); location.href = 'login.html'; throw new Error('未登录'); }
+        return data;
+    });
+}
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+var allRolesData = [];
+
+function loadRoles() {
+    api('/api/permission/roles').then(function(res) {
+        if (res.code !== 200) return;
+        allRolesData = res.data || [];
+        renderRoles(allRolesData);
+    });
+}
+
+function searchRoles() {
+    var kw = document.getElementById('searchKeyword').value.trim().toLowerCase();
+    if (!kw) { renderRoles(allRolesData); return; }
+    renderRoles(allRolesData.filter(function(r) {
+        return r.roleName && r.roleName.toLowerCase().indexOf(kw) >= 0;
+    }));
+}
+
+function clearSearch() {
+    document.getElementById('searchKeyword').value = '';
+    renderRoles(allRolesData);
+}
+
+function renderRoles(list) {
+    var tbody = document.getElementById('roleTableBody');
+    tbody.innerHTML = '';
+    list.forEach(function(r) {
+        var sc = r.status === 1 ? 'status-on' : 'status-off';
+        var st = r.status === 1 ? '启用' : '禁用';
+        tbody.innerHTML += '<tr>' +
+            '<td>' + r.id + '</td>' +
+            '<td><code>' + r.roleCode + '</code></td>' +
+            '<td>' + r.roleName + '</td>' +
+            '<td>' + (r.description || '-') + '</td>' +
+            '<td><span class="status-tag ' + sc + '">' + st + '</span></td>' +
+            '<td class="actions">' +
+                '<button class="btn btn-sm btn-primary" onclick="showEditModal(' + r.id + ')">编辑</button>' +
+                '<button class="btn btn-sm" onclick="showPermModal(' + r.id + ')">分配权限</button>' +
+                '<button class="btn btn-sm btn-danger" onclick="deleteRole(' + r.id + ')">删除</button>' +
+            '</td></tr>';
+    });
+}
+
+function showAddModal() {
+    document.getElementById('roleModalTitle').textContent = '新增角色';
+    document.getElementById('roleId').value = '';
+    document.getElementById('formRoleCode').value = '';
+    document.getElementById('formRoleCode').disabled = false;
+    document.getElementById('formRoleName').value = '';
+    document.getElementById('formRoleDesc').value = '';
+    document.getElementById('formRoleStatus').value = '1';
+    document.getElementById('roleModal').classList.add('active');
+}
+
+function showEditModal(id) {
+    api('/api/permission/roles').then(function(res) {
+        var role = (res.data || []).find(function(r) { return r.id === id; });
+        if (!role) return;
+        document.getElementById('roleModalTitle').textContent = '编辑角色';
+        document.getElementById('roleId').value = role.id;
+        document.getElementById('formRoleCode').value = role.roleCode;
+        document.getElementById('formRoleCode').disabled = true;
+        document.getElementById('formRoleName').value = role.roleName;
+        document.getElementById('formRoleDesc').value = role.description || '';
+        document.getElementById('formRoleStatus').value = role.status;
+        document.getElementById('roleModal').classList.add('active');
+    });
+}
+
+function saveRole() {
+    var id = document.getElementById('roleId').value;
+    var data = {
+        roleCode: document.getElementById('formRoleCode').value,
+        roleName: document.getElementById('formRoleName').value,
+        description: document.getElementById('formRoleDesc').value,
+        status: parseInt(document.getElementById('formRoleStatus').value)
+    };
+    if (!data.roleCode || !data.roleName) { alert('请填写角色标识和名称'); return; }
+    if (id) data.id = parseInt(id);
+    api('/api/permission/roles', id ? 'PUT' : 'POST', data).then(function(res) {
+        if (res.code === 200) { closeModal('roleModal'); loadRoles(); }
+        else { alert(res.msg); }
+    });
+}
+
+function deleteRole(id) {
+    if (!confirm('确定删除该角色？')) return;
+    api('/api/permission/roles/' + id, 'DELETE').then(function(res) {
+        if (res.code === 200) loadRoles();
+        else alert(res.msg);
+    });
+}
+
+// 分配权限
+var allPerms = [];
+function showPermModal(roleId) {
+    document.getElementById('permRoleId').value = roleId;
+    // 并行加载所有权限和角色已有权限
+    Promise.all([
+        api('/api/permission/list'),
+        api('/api/permission/role/' + roleId + '/permissions')
+    ]).then(function(results) {
+        allPerms = results[0].data || [];
+        var checkedIds = results[1].data || [];
+        renderPermTree(allPerms, checkedIds);
+        document.getElementById('permModal').classList.add('active');
+    });
+}
+
+function renderPermTree(perms, checkedIds) {
+    var TYPE_LABELS = { menu: '菜单权限', page: '页面权限', api: '接口权限' };
+    var groups = {};
+    perms.forEach(function(p) {
+        var t = p.permType || 'other';
+        if (!groups[t]) groups[t] = [];
+        groups[t].push(p);
+    });
+    var html = '';
+    Object.keys(groups).forEach(function(type) {
+        html += '<div class="perm-group">';
+        html += '<div class="perm-group-title">' + (TYPE_LABELS[type] || type) + '</div>';
+        html += '<div class="perm-items">';
+        groups[type].forEach(function(p) {
+            var checked = checkedIds.indexOf(p.id) >= 0 ? ' checked' : '';
+            html += '<label class="perm-item"><input type="checkbox" value="' + p.id + '"' + checked + '> ' + p.permName + '</label>';
+        });
+        html += '</div></div>';
+    });
+    document.getElementById('permTree').innerHTML = html;
+}
+
+function savePermissions() {
+    var roleId = parseInt(document.getElementById('permRoleId').value);
+    var checked = [];
+    document.querySelectorAll('#permTree input[type=checkbox]:checked').forEach(function(cb) {
+        checked.push(parseInt(cb.value));
+    });
+    api('/api/permission/role/permissions', 'POST', { roleId: roleId, permissionIds: checked }).then(function(res) {
+        if (res.code === 200) { closeModal('permModal'); alert('权限保存成功'); }
+        else { alert(res.msg); }
+    });
+}
+
+loadRoles();
+</script>
+</body>
+</html>

@@ -2,6 +2,10 @@ server:
   port: 8080
 
 spring:
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd HH:mm:ss
   datasource:
     url: jdbc:mysql://10.60.8.31:3308/work_plan?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root

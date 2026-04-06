@@ -166,6 +166,7 @@ public class ScheduleService {
         BigDecimal totalH = subTasks.stream().map(Task::getTotalHours).reduce(BigDecimal.ZERO, BigDecimal::add);
 
         ScheduleTaskRespVO taskVO = new ScheduleTaskRespVO();
+        taskVO.setDemandId(demand.getId());
         taskVO.setTaskName(demand.getDemandName());
         taskVO.setTaskType(demand.getDemandType());
         taskVO.setStartDate(minStart);
@@ -175,6 +176,7 @@ public class ScheduleService {
         List<ScheduleSubTaskRespVO> subList = new ArrayList<>();
         for (Task st : subTasks) {
             ScheduleSubTaskRespVO subVO = new ScheduleSubTaskRespVO();
+            subVO.setTaskId(st.getId());
             subVO.setName(st.getTaskName());
             subVO.setType(st.getTaskType());
             subVO.setStartDate(st.getStartDate().toString());
@@ -191,6 +193,7 @@ public class ScheduleService {
      */
     private ScheduleTaskRespVO buildIndependentTaskRespVO(Task task) {
         ScheduleTaskRespVO taskVO = new ScheduleTaskRespVO();
+        taskVO.setTaskId(task.getId());
         taskVO.setTaskName(task.getTaskName());
         taskVO.setTaskType(task.getTaskType());
         taskVO.setStartDate(task.getStartDate().toString());

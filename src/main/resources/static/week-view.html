@@ -69,6 +69,17 @@
         .lane-spacer { visibility: hidden; pointer-events: none; }
         .lane-spacer .progress-bar { height: 28px; margin-bottom: 0; }
         .lane-spacer .task-header { padding: 5px 0; }
+        /* 任务操作弹出菜单 */
+        .task-popup { position: fixed; z-index: 2000; background: #fff; border-radius: 6px; box-shadow: 0 3px 12px rgba(0,0,0,0.2); padding: 4px 0; min-width: 120px; display: none; }
+        .task-popup.active { display: block; }
+        .task-popup .popup-item { padding: 8px 16px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .task-popup .popup-item:hover { background: #e6f7ff; }
+        .task-popup .popup-item.danger { color: #ff4d4f; }
+        .task-popup .popup-item.danger:hover { background: #fff2f0; }
+        .task-popup .popup-title { padding: 6px 16px; font-size: 12px; color: #999; border-bottom: 1px solid #f0f0f0; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+        /* 可点击的任务条 */
+        .progress-bar.clickable { cursor: pointer; transition: box-shadow 0.2s; }
+        .progress-bar.clickable:hover { box-shadow: 0 0 0 2px rgba(24,144,255,0.3); }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal-overlay.active { display: flex; }
         .modal { background: #fff; border-radius: 8px; padding: 24px; width: 480px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
@@ -168,6 +179,13 @@
     </div>
 </div>
 
+<!-- 任务操作弹出菜单 -->
+<div class="task-popup" id="taskPopup">
+    <div class="popup-title" id="popupTitle"></div>
+    <div class="popup-item" onclick="editTaskFromPopup()">✏️ 编辑</div>
+    <div class="popup-item danger" onclick="deleteTaskFromPopup()">🗑️ 删除</div>
+</div>
+
 <script>
 var token = localStorage.getItem('token');
 var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
@@ -212,6 +230,15 @@ function getMonday() {
     var d = new Date(), day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
     d.setDate(diff); return fmtDate(d);
 }
+/** 兼容日期格式：数组[2025,11,10] 或字符串 "2025-11-10" 统一转为 "yyyy-MM-dd" */
+function normalizeDate(v) {
+    if (!v) return '';
+    if (Array.isArray(v)) {
+        var y = v[0], m = v[1], d = v[2];
+        return y + '-' + (m < 10 ? '0' + m : m) + '-' + (d < 10 ? '0' + d : d);
+    }
+    return String(v).substring(0, 10);
+}
 function init() { weekStart = getMonday(); loadFilters(); loadSchedule(); }
 function loadFilters() {
     api('/api/dept/list').then(function(res) {
@@ -255,7 +282,9 @@ function toggleExpand() {
         if (allExpanded) el.classList.add('expanded'); else el.classList.remove('expanded');
     });
     document.querySelectorAll('.cross-day-bar').forEach(function(bar) { syncPlaceholders(bar, bar.classList.contains('expanded')); });
-    requestAnimationFrame(function() { positionAllCrossDayBars(); });
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() { positionAllCrossDayBars(); });
+    });
 }
 
 /**
@@ -371,6 +400,50 @@ function render() {
     });
     requestAnimationFrame(function() { positionAllCrossDayBars(); bindExpandEvents(); });
 }
+
+/** 为 progress-bar 元素绑定点击弹出菜单（通过 DOM 操作，闭包持有 taskId） */
+function bindTaskClick(container, taskId, taskName) {
+    if (!taskId) return;
+    var bars = container.querySelectorAll('.progress-bar');
+    var lastBar = bars[bars.length - 1]; // 刚插入的最后一个
+    if (!lastBar) return;
+    // 找到刚插入的 main-task 或 cross-day-bar 或 sub-task 中的 progress-bar
+    var parent = container.lastElementChild;
+    if (!parent) return;
+    var targetBars = parent.querySelectorAll('.progress-bar');
+    targetBars.forEach(function(b) {
+        // 只绑定还没绑定过的
+        if (b._taskClickBound) return;
+        b._taskClickBound = true;
+        b.classList.add('clickable');
+        b.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            showTaskPopup(e.clientX, e.clientY, taskId, taskName || b.querySelector('.task-name')?.textContent || '');
+        });
+    });
+}
+
+/** 为子任务列表中的每个子任务绑定点击 */
+function bindSubTaskClicks(container, subTasks) {
+    if (!subTasks || !subTasks.length) return;
+    var parent = container.lastElementChild;
+    if (!parent) return;
+    var subEls = parent.querySelectorAll('.sub-task');
+    subTasks.forEach(function(s, idx) {
+        if (!s.taskId || idx >= subEls.length) return;
+        var bar = subEls[idx].querySelector('.progress-bar');
+        if (!bar || bar._taskClickBound) return;
+        bar._taskClickBound = true;
+        bar.classList.add('clickable');
+        bar.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            showTaskPopup(e.clientX, e.clientY, s.taskId, s.name || '');
+        });
+    });
+}
+
 function renderSingleDayTask(container, task) {
     var hasSubs = task.subTasks && task.subTasks.length > 0;
     var html = '<div class="main-task"><div class="task-header' + (hasSubs ? '' : ' no-subtasks') + '">';
@@ -391,6 +464,35 @@ function renderSingleDayTask(container, task) {
     }
     html += '</div>';
     container.insertAdjacentHTML('beforeend', html);
+    // 独立任务：绑定主任务条点击
+    if (task.taskId) {
+        var mainEl = container.lastElementChild;
+        var mainBar = mainEl.querySelector('.task-header > .progress-bar');
+        if (mainBar && !mainBar._taskClickBound) {
+            mainBar._taskClickBound = true;
+            mainBar.classList.add('clickable');
+            mainBar.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showTaskPopup(e.clientX, e.clientY, task.taskId, task.taskName);
+            });
+        }
+    }
+    // 子任务：逐个绑定
+    if (hasSubs) {
+        var mainEl2 = container.lastElementChild;
+        var subEls = mainEl2.querySelectorAll('.sub-task');
+        task.subTasks.forEach(function(s, idx) {
+            if (!s.taskId || idx >= subEls.length) return;
+            var sBar = subEls[idx].querySelector('.progress-bar');
+            if (!sBar || sBar._taskClickBound) return;
+            sBar._taskClickBound = true;
+            sBar.classList.add('clickable');
+            sBar.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showTaskPopup(e.clientX, e.clientY, s.taskId, s.name);
+            });
+        });
+    }
 }
 
 function renderCrossDayPlaceholder(container, task, col, item, weekDates) {
@@ -443,6 +545,32 @@ function renderCrossDayBar(cells, startContainer, task, item, weekDates) {
     }
     bar += '</div>';
     startContainer.insertAdjacentHTML('beforeend', bar);
+    // 绑定跨天条上的点击事件（闭包持有 taskId）
+    var barEl = startContainer.lastElementChild;
+    if (task.taskId) {
+        var mainBar = barEl.querySelector('.task-header > .progress-bar');
+        if (mainBar) {
+            mainBar.classList.add('clickable');
+            mainBar.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showTaskPopup(e.clientX, e.clientY, task.taskId, task.taskName);
+            });
+        }
+    }
+    // 子任务点击
+    if (hasSubs) {
+        var subEls = barEl.querySelectorAll('.sub-task');
+        task.subTasks.forEach(function(s, idx) {
+            if (!s.taskId || idx >= subEls.length) return;
+            var sBar = subEls[idx].querySelector('.progress-bar');
+            if (!sBar) return;
+            sBar.classList.add('clickable');
+            sBar.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showTaskPopup(e.clientX, e.clientY, s.taskId, s.name);
+            });
+        });
+    }
 }
 function positionAllCrossDayBars() {
     document.querySelectorAll('.cross-day-bar').forEach(function(bar) {
@@ -469,22 +597,38 @@ function positionAllCrossDayBars() {
             subEl.style.left = (sfr.left - firstRect.left - 20) + 'px';
             subEl.style.width = (slr.right - sfr.left - 8) + 'px';
         });
+
+        // 同步所有列的 placeholder 最小高度 = 跨天条实际高度，防止展开子任务后覆盖下方任务
+        var barHeight = bar.offsetHeight;
+        var barName = bar.querySelector('.task-name') ? bar.querySelector('.task-name').textContent : '';
+        for (var c = si; c <= ei; c++) {
+            var cc = cells[c + 1].querySelector('.task-container');
+            var phs = cc.querySelectorAll('.cross-day-placeholder');
+            for (var p = 0; p < phs.length; p++) {
+                var pn = phs[p].querySelector('.task-name');
+                if (pn && pn.textContent === barName) {
+                    phs[p].style.minHeight = barHeight + 'px';
+                    break;
+                }
+            }
+        }
     });
 }
 
 function syncPlaceholders(bar, isExp) {
     var psi = parseInt(bar.getAttribute('data-start-col')), pei = parseInt(bar.getAttribute('data-end-col'));
     var row = bar.closest('tr'), cells = row.querySelectorAll('td');
+    var barName = bar.querySelector('.task-name') ? bar.querySelector('.task-name').textContent : '';
     for (var c = psi; c <= pei; c++) {
         var cc = cells[c + 1].querySelector('.task-container');
-        // 找到该列中与此 bar 对应的 placeholder（通过任务名匹配）
-        var barName = bar.querySelector('.task-name').textContent;
         var phs = cc.querySelectorAll('.cross-day-placeholder');
         for (var i = 0; i < phs.length; i++) {
             var phName = phs[i].querySelector('.task-name');
             if (phName && phName.textContent === barName) {
                 var s = phs[i].querySelector('.sub-tasks');
                 if (s) s.style.display = isExp ? 'block' : 'none';
+                // 收起时清除 minHeight，让 placeholder 恢复自然高度
+                if (!isExp) phs[i].style.minHeight = '';
                 break;
             }
         }
@@ -494,15 +638,92 @@ function syncPlaceholders(bar, isExp) {
 function bindExpandEvents() {
     document.querySelectorAll('.task-header:not(.no-subtasks)').forEach(function(header) {
         if (header._bound) return; header._bound = true;
-        header.addEventListener('click', function() {
+        header.addEventListener('click', function(e) {
+            // 如果点击的是可点击的进度条，不触发展开
+            if (e.target.closest('.progress-bar.clickable')) return;
             var parent = this.closest('.main-task') || this.closest('.cross-day-bar');
             if (!parent) return;
             parent.classList.toggle('expanded');
             if (parent.classList.contains('cross-day-bar')) {
                 syncPlaceholders(parent, parent.classList.contains('expanded'));
-                requestAnimationFrame(function() { positionAllCrossDayBars(); });
+                // 双重 rAF 确保 placeholder 布局更新后再重新定位
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() { positionAllCrossDayBars(); });
+                });
             }
         });
+    });
+}
+
+/* 任务操作弹出菜单 */
+var popupTaskId = null;
+function showTaskPopup(x, y, taskId, taskName) {
+    popupTaskId = taskId;
+    var popup = document.getElementById('taskPopup');
+    document.getElementById('popupTitle').textContent = taskName;
+    popup.style.left = x + 'px';
+    popup.style.top = y + 'px';
+    popup.classList.add('active');
+    // 确保不超出屏幕
+    requestAnimationFrame(function() {
+        var rect = popup.getBoundingClientRect();
+        if (rect.right > window.innerWidth) popup.style.left = (x - rect.width) + 'px';
+        if (rect.bottom > window.innerHeight) popup.style.top = (y - rect.height) + 'px';
+    });
+}
+function hideTaskPopup() { document.getElementById('taskPopup').classList.remove('active'); }
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.task-popup') && !e.target.closest('.progress-bar.clickable')) { hideTaskPopup(); popupTaskId = null; }
+});
+
+function editTaskFromPopup() {
+    if (!popupTaskId) return;
+    var id = popupTaskId;
+    popupTaskId = null;
+    hideTaskPopup();
+    // 通过 API 获取任务详情，填充到编辑弹窗
+    api('/api/task/' + id).then(function(res) {
+        if (res.code !== 200 || !res.data) { alert('获取任务详情失败'); return; }
+        var t = res.data;
+        document.getElementById('taskModalTitle').textContent = '编辑任务';
+        document.getElementById('taskId').value = t.id;
+        document.getElementById('taskName').value = t.taskName || '';
+        document.getElementById('taskType').value = t.taskType || '开发';
+        document.getElementById('taskStart').value = normalizeDate(t.startDate);
+        document.getElementById('taskEnd').value = normalizeDate(t.endDate);
+        document.getElementById('taskHours').value = t.totalHours || '';
+        document.getElementById('taskDesc').value = t.description || '';
+        // 加载下拉数据后设置选中值
+        api('/api/user/list').then(function(r) {
+            if (r.code === 200) {
+                var sel = document.getElementById('taskAssignee'); sel.innerHTML = '';
+                r.data.forEach(function(u) {
+                    sel.innerHTML += '<option value="' + u.id + '"' + (u.id == t.assigneeId ? ' selected' : '') + '>' + u.realName + '</option>';
+                });
+            }
+        });
+        api('/api/demand/list').then(function(r) {
+            if (r.code === 200) {
+                var sel = document.getElementById('taskDemandId');
+                sel.innerHTML = '<option value="">无（独立任务）</option>';
+                r.data.forEach(function(d) {
+                    sel.innerHTML += '<option value="' + d.id + '"' + (t.demandId && d.id == t.demandId ? ' selected' : '') + '>' + d.demandName + '</option>';
+                });
+            }
+        });
+        document.getElementById('taskModal').classList.add('active');
+    });
+}
+
+function deleteTaskFromPopup() {
+    if (!popupTaskId) return;
+    var id = popupTaskId;
+    popupTaskId = null;
+    hideTaskPopup();
+    if (!confirm('确定删除该任务？')) return;
+    api('/api/task/' + id, 'DELETE').then(function(res) {
+        if (res.code === 200) { loadSchedule(); }
+        else { alert(res.msg || '删除失败'); }
     });
 }
 /* 任务弹窗 */

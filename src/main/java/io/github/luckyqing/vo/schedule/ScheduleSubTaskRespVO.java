@@ -10,6 +10,9 @@ import java.math.BigDecimal;
 @Data
 public class ScheduleSubTaskRespVO {
 
+    /** 任务ID */
+    private Long taskId;
+
     /** 子任务名称 */
     private String name;
 

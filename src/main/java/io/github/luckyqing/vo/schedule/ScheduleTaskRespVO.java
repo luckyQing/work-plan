@@ -11,6 +11,12 @@ import java.util.List;
 @Data
 public class ScheduleTaskRespVO {
 
+    /** 任务ID（独立任务时有值，需求级别时为null） */
+    private Long taskId;
+
+    /** 需求ID（需求级别时有值） */
+    private Long demandId;
+
     /** 任务/需求名称 */
     private String taskName;
 

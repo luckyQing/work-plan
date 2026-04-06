@@ -183,7 +183,7 @@ function api(url, method, body) {
     if (token) opts.headers['Authorization'] = 'Bearer ' + token;
     if (body) opts.body = JSON.stringify(body);
     return fetch(url, opts).then(function(r) { return r.json(); }).then(function(data) {
-        if (data.code === 401) { location.href = 'login.html'; throw new Error('未登录'); }
+        if (data.code === 401) { localStorage.removeItem('token'); localStorage.removeItem('currentUser'); location.href = 'login.html'; throw new Error('未登录'); }
         return data;
     });
 }

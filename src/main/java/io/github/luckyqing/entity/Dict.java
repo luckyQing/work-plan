@@ -6,33 +6,38 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 用户实体
+ * 字典配置实体
  */
 @Data
-@TableName("sys_user")
-public class SysUser {
+@TableName("t_dict")
+public class Dict {
 
     /** 主键ID */
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 登录账号 */
-    private String username;
+    /** 配置类别 */
+    private String configType;
 
-    /** 登录密码（MD5加密） */
-    private String password;
+    /** 显示名称 */
+    private String configLabel;
 
-    /** 真实姓名 */
-    private String realName;
+    /** 配置值 */
+    private String configValue;
 
-    /** 所属部门ID */
-    private Long deptId;
-
-    /** 角色: ADMIN-管理员 USER-普通用户 */
-    private String role;
+    /** 排序号 */
+    private Integer sortOrder;
 
     /** 状态: 1启用 0禁用 */
     private Integer status;
+
+    /** 创建人ID */
+    @TableField(fill = FieldFill.INSERT)
+    private Long createId;
+
+    /** 修改人ID */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private Long updateId;
 
     /** 创建时间 */
     @TableField(fill = FieldFill.INSERT)
@@ -45,8 +50,4 @@ public class SysUser {
     /** 逻辑删除标识 */
     @TableLogic
     private Integer deleted;
-
-    /** 部门名称（非数据库字段，关联查询用） */
-    @TableField(exist = false)
-    private String deptName;
 }

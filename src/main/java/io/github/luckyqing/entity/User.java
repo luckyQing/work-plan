@@ -6,20 +6,32 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 项目实体
+ * 用户实体
  */
 @Data
-@TableName("t_project")
-public class Project {
+@TableName("t_user")
+public class User {
 
     /** 主键ID */
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 项目名称 */
-    private String projectName;
+    /** 登录账号 */
+    private String username;
 
-    /** 状态: 1进行中 0已结束 */
+    /** 登录密码（MD5加密） */
+    private String password;
+
+    /** 真实姓名 */
+    private String realName;
+
+    /** 所属部门（字典值） */
+    private String dept;
+
+    /** 角色: ADMIN-管理员 USER-普通用户 */
+    private String role;
+
+    /** 状态: 1启用 0禁用 */
     private Integer status;
 
     /** 创建人ID */

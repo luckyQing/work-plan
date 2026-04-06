@@ -55,6 +55,7 @@
     <a href="week-view.html">周排期</a>
     <a href="demand-manage.html">需求管理</a>
     <a href="user-manage.html" class="active">人员管理</a>
+    <a href="config-manage.html">字典配置</a>
     <div class="right">
         <span id="navUser"></span>
         <button class="logout-btn" onclick="doLogout()">退出</button>
@@ -90,7 +91,7 @@
         <div class="form-group"><label>姓名</label><input type="text" id="formRealName"></div>
         <div class="form-group"><label>部门</label><select id="formDept"></select></div>
         <div class="form-group"><label>角色</label>
-            <select id="formRole"><option value="USER">普通用户</option><option value="ADMIN">管理员</option></select>
+            <select id="formRole"></select>
         </div>
         <div class="form-group"><label>状态</label>
             <select id="formStatus"><option value="1">启用</option><option value="0">禁用</option></select>
@@ -124,23 +125,22 @@ function doLogout() {
 }
 
 function loadDepts() {
-    api('/api/dept/list').then(function(res) {
-        if (res.code !== 200) return;
-        var html = '<option value="">全部部门</option>';
-        var fhtml = '<option value="">请选择</option>';
-        res.data.forEach(function(d) {
-            html += '<option value="' + d.id + '">' + d.deptName + '</option>';
-            fhtml += '<option value="' + d.id + '">' + d.deptName + '</option>';
-        });
-        document.getElementById('filterDept').innerHTML = html;
-        document.getElementById('formDept').innerHTML = fhtml;
+    // 从字典加载部门列表
+    var depts = dictData['dept'] || [];
+    var html = '<option value="">全部部门</option>';
+    var fhtml = '<option value="">请选择</option>';
+    depts.forEach(function(d) {
+        html += '<option value="' + d.configValue + '">' + d.configLabel + '</option>';
+        fhtml += '<option value="' + d.configValue + '">' + d.configLabel + '</option>';
     });
+    document.getElementById('filterDept').innerHTML = html;
+    document.getElementById('formDept').innerHTML = fhtml;
 }
 
 function loadUsers() {
-    var deptId = document.getElementById('filterDept').value;
+    var dept = document.getElementById('filterDept').value;
     var url = '/api/user/list';
-    if (deptId) url += '?deptId=' + deptId;
+    if (dept) url += '?dept=' + encodeURIComponent(dept);
     api(url).then(function(res) {
         if (res.code !== 200) return;
         var tbody = document.getElementById('userTableBody');
@@ -153,8 +153,8 @@ function loadUsers() {
                 '<td>' + u.id + '</td>' +
                 '<td>' + u.username + '</td>' +
                 '<td>' + u.realName + '</td>' +
-                '<td>' + (u.deptName || '-') + '</td>' +
-                '<td><span class="role-tag">' + u.role + '</span></td>' +
+                '<td>' + getDictLabel('dept', u.dept) + '</td>' +
+                '<td><span class="role-tag">' + getDictLabel('role', u.role) + '</span></td>' +
                 '<td><span class="status-tag ' + statusCls + '">' + statusTxt + '</span></td>' +
                 '<td>' + time + '</td>' +
                 '<td class="actions">' +
@@ -187,7 +187,7 @@ function showEditModal(id) {
         document.getElementById('formUsername').disabled = true;
         document.getElementById('formPassword').value = '';
         document.getElementById('formRealName').value = u.realName;
-        document.getElementById('formDept').value = u.deptId || '';
+        document.getElementById('formDept').value = u.dept || '';
         document.getElementById('formRole').value = u.role;
         document.getElementById('formStatus').value = u.status;
         document.getElementById('userModal').classList.add('active');
@@ -202,7 +202,7 @@ function saveUser() {
         username: document.getElementById('formUsername').value,
         password: document.getElementById('formPassword').value,
         realName: document.getElementById('formRealName').value,
-        deptId: document.getElementById('formDept').value || null,
+        dept: document.getElementById('formDept').value || null,
         role: document.getElementById('formRole').value,
         status: parseInt(document.getElementById('formStatus').value)
     };
@@ -224,8 +224,28 @@ function deleteUser(id) {
     });
 }
 
-loadDepts();
-loadUsers();
+var dictData = {};
+function fillSelect(selId, type, defaultVal) {
+    var sel = document.getElementById(selId);
+    if (!sel || !dictData[type]) return;
+    sel.innerHTML = '';
+    dictData[type].forEach(function(d) {
+        sel.innerHTML += '<option value="' + d.configValue + '"' + (d.configValue == defaultVal ? ' selected' : '') + '>' + d.configLabel + '</option>';
+    });
+}
+function getDictLabel(type, value) {
+    if (!dictData[type]) return value;
+    for (var i = 0; i < dictData[type].length; i++) {
+        if (dictData[type][i].configValue == value) return dictData[type][i].configLabel;
+    }
+    return value;
+}
+api('/api/config/all').then(function(res) {
+    if (res.code === 200) dictData = res.data || {};
+    fillSelect('formRole', 'role', 'USER');
+    loadDepts();
+    loadUsers();
+});
 </script>
 </body>
 </html>

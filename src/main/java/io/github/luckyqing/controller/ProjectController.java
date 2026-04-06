@@ -6,7 +6,7 @@ import io.github.luckyqing.vo.project.ProjectSaveReqVO;
 import io.github.luckyqing.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
+import javax.validation.Valid;
 import java.util.List;
 
 /**
@@ -37,7 +37,7 @@ public class ProjectController {
      * @return 操作结果
      */
     @PostMapping
-    public R<Void> add(@RequestBody ProjectSaveReqVO reqVO) {
+    public R<Void> add(@Valid @RequestBody ProjectSaveReqVO reqVO) {
         projectService.addProject(reqVO);
         return R.ok();
     }
@@ -49,7 +49,7 @@ public class ProjectController {
      * @return 操作结果
      */
     @PutMapping
-    public R<Void> update(@RequestBody ProjectSaveReqVO reqVO) {
+    public R<Void> update(@Valid @RequestBody ProjectSaveReqVO reqVO) {
         projectService.updateProject(reqVO);
         return R.ok();
     }

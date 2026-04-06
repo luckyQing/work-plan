@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
+import io.github.luckyqing.common.UserContext;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,9 +18,6 @@ import java.time.LocalDateTime;
 @Configuration
 public class MybatisPlusConfig {
 
-    /**
-     * 分页插件
-     */
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
@@ -29,8 +27,8 @@ public class MybatisPlusConfig {
 
     /**
      * 自动填充处理器
-     * 插入时自动填充 createTime、updateTime
-     * 更新时自动填充 updateTime
+     * 插入时填充 createTime、updateTime、createId、updateId
+     * 更新时填充 updateTime、updateId
      */
     @Bean
     public MetaObjectHandler metaObjectHandler() {
@@ -39,11 +37,20 @@ public class MybatisPlusConfig {
             public void insertFill(MetaObject metaObject) {
                 this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
                 this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+                Long userId = UserContext.getUserId();
+                if (userId != null) {
+                    this.strictInsertFill(metaObject, "createId", Long.class, userId);
+                    this.strictInsertFill(metaObject, "updateId", Long.class, userId);
+                }
             }
 
             @Override
             public void updateFill(MetaObject metaObject) {
                 this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+                Long userId = UserContext.getUserId();
+                if (userId != null) {
+                    this.strictUpdateFill(metaObject, "updateId", Long.class, userId);
+                }
             }
         };
     }

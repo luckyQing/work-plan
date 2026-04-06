@@ -17,6 +17,9 @@ public class ScheduleTaskRespVO {
     /** 需求ID（需求级别时有值） */
     private Long demandId;
 
+    /** 项目名称 */
+    private String projectName;
+
     /** 任务/需求名称 */
     private String taskName;
 

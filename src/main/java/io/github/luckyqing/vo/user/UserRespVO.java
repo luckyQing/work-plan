@@ -19,13 +19,10 @@ public class UserRespVO {
     /** 真实姓名 */
     private String realName;
 
-    /** 所属部门ID */
-    private Long deptId;
+    /** 所属部门（字典值） */
+    private String dept;
 
-    /** 部门名称 */
-    private String deptName;
-
-    /** 角色: ADMIN/USER */
+    /** 角色 */
     private String role;
 
     /** 状态: 1启用 0禁用 */

@@ -2,7 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="io.github.luckyqing.mapper.TaskMapper">
 
-    <!-- 通用结果映射：任务信息 + 负责人姓名 + 需求名称 -->
     <resultMap id="taskWithDetailMap" type="io.github.luckyqing.entity.Task">
         <id column="id" property="id"/>
         <result column="task_name" property="taskName"/>
@@ -21,32 +20,23 @@
         <result column="demand_name" property="demandName"/>
     </resultMap>
 
-    <!-- 根据负责人ID和日期范围查询任务（关联负责人姓名、需求名称） -->
     <select id="selectByAssigneeAndDateRange" resultMap="taskWithDetailMap">
-        SELECT t.*,
-               u.real_name AS assignee_name,
-               d.demand_name
-        FROM task t
-        LEFT JOIN sys_user u ON t.assignee_id = u.id
-        LEFT JOIN demand d ON t.demand_id = d.id
-        WHERE t.deleted = 0
-          AND t.assignee_id = #{assigneeId}
-          AND t.start_date &lt;= #{endDate}
-          AND t.end_date &gt;= #{startDate}
+        SELECT t.*, u.real_name AS assignee_name, d.demand_name
+        FROM t_task t
+        LEFT JOIN t_user u ON t.assignee_id = u.id
+        LEFT JOIN t_demand d ON t.demand_id = d.id
+        WHERE t.deleted = 0 AND t.assignee_id = #{assigneeId}
+          AND t.start_date &lt;= #{endDate} AND t.end_date &gt;= #{startDate}
         ORDER BY t.start_date
     </select>
 
-    <!-- 根据日期范围查询所有任务（关联负责人姓名、需求名称），按负责人和开始日期排序 -->
     <select id="selectByDateRange" resultMap="taskWithDetailMap">
-        SELECT t.*,
-               u.real_name AS assignee_name,
-               d.demand_name
-        FROM task t
-        LEFT JOIN sys_user u ON t.assignee_id = u.id
-        LEFT JOIN demand d ON t.demand_id = d.id
+        SELECT t.*, u.real_name AS assignee_name, d.demand_name
+        FROM t_task t
+        LEFT JOIN t_user u ON t.assignee_id = u.id
+        LEFT JOIN t_demand d ON t.demand_id = d.id
         WHERE t.deleted = 0
-          AND t.start_date &lt;= #{endDate}
-          AND t.end_date &gt;= #{startDate}
+          AND t.start_date &lt;= #{endDate} AND t.end_date &gt;= #{startDate}
         ORDER BY t.assignee_id, t.start_date
     </select>
 

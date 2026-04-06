@@ -8,6 +8,6 @@ import lombok.Data;
 @Data
 public class UserListReqVO {
 
-    /** 部门ID（可选，不传则查全部） */
-    private Long deptId;
+    /** 部门（字典值，可选） */
+    private String dept;
 }

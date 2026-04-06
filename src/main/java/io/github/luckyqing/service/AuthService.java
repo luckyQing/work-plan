@@ -2,60 +2,51 @@ package io.github.luckyqing.service;
 
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import io.github.luckyqing.common.JwtUtil;
 import io.github.luckyqing.common.R;
-import io.github.luckyqing.entity.SysUser;
-import io.github.luckyqing.mapper.SysUserMapper;
+import io.github.luckyqing.entity.User;
+import io.github.luckyqing.mapper.UserMapper;
 import io.github.luckyqing.vo.auth.LoginReqVO;
 import io.github.luckyqing.vo.auth.LoginRespVO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 认证服务
- * 处理用户登录、登出逻辑，基于 Redis 存储 token
+ * 使用 JWT 生成和验证 token
  */
 @Service
 public class AuthService {
 
     @Autowired
-    private SysUserMapper userMapper;
-
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private UserMapper userMapper;
 
     /**
      * 用户登录
-     * 校验用户名密码，生成 token 存入 Redis（24小时过期）
-     *
-     * @param reqVO 登录请求参数
-     * @return 登录结果（含 token、用户信息）
      */
     public R<LoginRespVO> login(LoginReqVO reqVO) {
-        // 根据用户名查询用户
-        SysUser user = userMapper.selectOne(
-                new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, reqVO.getUsername()));
+        if (reqVO.getUsername() == null || reqVO.getUsername().isEmpty()) {
+            return R.fail("用户名不能为空");
+        }
+        if (reqVO.getPassword() == null || reqVO.getPassword().isEmpty()) {
+            return R.fail("密码不能为空");
+        }
+
+        User user = userMapper.selectOne(
+                new LambdaQueryWrapper<User>().eq(User::getUsername, reqVO.getUsername()));
         if (user == null) {
             return R.fail("用户不存在");
         }
         if (user.getStatus() != 1) {
             return R.fail("账号已禁用");
         }
-
-        // 校验密码（MD5）
-        String md5 = DigestUtil.md5Hex(reqVO.getPassword());
-        if (!md5.equals(user.getPassword())) {
+        if (!DigestUtil.md5Hex(reqVO.getPassword()).equals(user.getPassword())) {
             return R.fail("密码错误");
         }
 
-        // 生成 token 并存入 Redis，有效期24小时
-        String token = UUID.randomUUID().toString().replace("-", "");
-        redisTemplate.opsForValue().set("token:" + token, user.getId(), 24, TimeUnit.HOURS);
+        // 生成 JWT token
+        String token = JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
 
-        // 组装返回数据
         LoginRespVO respVO = new LoginRespVO();
         respVO.setToken(token);
         respVO.setUserId(user.getId());
@@ -65,20 +56,9 @@ public class AuthService {
     }
 
     /**
-     * 用户登出
-     * 从 Redis 中删除 token
-     *
-     * @param authorization 请求头中的 Authorization 值
-     * @return 操作结果
+     * 用户登出（JWT 无状态，客户端清除 token 即可）
      */
-    public R<Void> logout(String authorization) {
-        String token = authorization;
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        }
-        if (token != null) {
-            redisTemplate.delete("token:" + token);
-        }
+    public R<Void> logout() {
         return R.ok();
     }
 }

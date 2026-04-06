@@ -1,6 +1,7 @@
 package io.github.luckyqing.vo.user;
 
 import lombok.Data;
+import javax.validation.constraints.NotBlank;
 
 /**
  * 用户新增/修改请求参数
@@ -8,24 +9,21 @@ import lombok.Data;
 @Data
 public class UserSaveReqVO {
 
-    /** 用户ID（修改时必传） */
     private Long id;
 
-    /** 登录账号 */
+    @NotBlank(message = "用户名不能为空")
     private String username;
 
-    /** 登录密码（新增时必传，修改时为空则不更新） */
+    /** 新增时必传，修改时为空则不更新 */
     private String password;
 
-    /** 真实姓名 */
+    @NotBlank(message = "姓名不能为空")
     private String realName;
 
-    /** 所属部门ID */
-    private Long deptId;
+    /** 所属部门（字典值） */
+    private String dept;
 
-    /** 角色: ADMIN/USER */
     private String role;
 
-    /** 状态: 1启用 0禁用 */
     private Integer status;
 }

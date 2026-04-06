@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * 任务实体（个人任务/子任务）
  */
 @Data
-@TableName("task")
+@TableName("t_task")
 public class Task {
 
     /** 主键ID */
@@ -44,6 +44,14 @@ public class Task {
 
     /** 任务描述 */
     private String description;
+
+    /** 创建人ID */
+    @TableField(fill = FieldFill.INSERT)
+    private Long createId;
+
+    /** 修改人ID */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private Long updateId;
 
     /** 创建时间 */
     @TableField(fill = FieldFill.INSERT)

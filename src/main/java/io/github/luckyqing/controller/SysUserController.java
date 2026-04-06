@@ -4,10 +4,10 @@ import io.github.luckyqing.common.R;
 import io.github.luckyqing.vo.user.UserListReqVO;
 import io.github.luckyqing.vo.user.UserRespVO;
 import io.github.luckyqing.vo.user.UserSaveReqVO;
-import io.github.luckyqing.service.SysUserService;
+import io.github.luckyqing.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
+import javax.validation.Valid;
 import java.util.List;
 
 /**
@@ -19,7 +19,7 @@ import java.util.List;
 public class SysUserController {
 
     @Autowired
-    private SysUserService userService;
+    private UserService userService;
 
     /**
      * 查询用户列表
@@ -51,7 +51,7 @@ public class SysUserController {
      * @return 操作结果
      */
     @PostMapping
-    public R<Void> add(@RequestBody UserSaveReqVO reqVO) {
+    public R<Void> add(@Valid @RequestBody UserSaveReqVO reqVO) {
         return userService.addUser(reqVO);
     }
 
@@ -62,7 +62,7 @@ public class SysUserController {
      * @return 操作结果
      */
     @PutMapping
-    public R<Void> update(@RequestBody UserSaveReqVO reqVO) {
+    public R<Void> update(@Valid @RequestBody UserSaveReqVO reqVO) {
         return userService.updateUser(reqVO);
     }
 

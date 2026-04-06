@@ -9,11 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import java.util.List;
 
 /**
  * 任务管理接口
- * 提供个人任务的录入、查看、修改、删除功能
  */
 @RestController
 @RequestMapping("/api/task")
@@ -22,39 +22,18 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
-    /**
-     * 查询任务列表
-     * 可选按负责人和日期范围筛选
-     *
-     * @param reqVO 查询参数
-     * @return 任务列表
-     */
     @GetMapping("/list")
     public R<List<TaskRespVO>> list(TaskListReqVO reqVO) {
         return R.ok(taskService.listTasks(reqVO));
     }
 
-    /**
-     * 根据ID查询任务详情
-     *
-     * @param id 任务ID
-     * @return 任务信息
-     */
     @GetMapping("/{id}")
     public R<TaskRespVO> getById(@PathVariable Long id) {
         return R.ok(taskService.getTaskById(id));
     }
 
-    /**
-     * 新增任务
-     * 如果未指定负责人，默认为当前登录用户
-     *
-     * @param reqVO   任务信息
-     * @param request HTTP请求（获取当前登录用户ID）
-     * @return 操作结果
-     */
     @PostMapping
-    public R<Void> add(@RequestBody TaskSaveReqVO reqVO, HttpServletRequest request) {
+    public R<Void> add(@Valid @RequestBody TaskSaveReqVO reqVO, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         taskService.addTask(reqVO, userId);
         return R.ok();
@@ -67,7 +46,7 @@ public class TaskController {
      * @return 操作结果
      */
     @PutMapping
-    public R<Void> update(@RequestBody TaskSaveReqVO reqVO) {
+    public R<Void> update(@Valid @RequestBody TaskSaveReqVO reqVO) {
         taskService.updateTask(reqVO);
         return R.ok();
     }

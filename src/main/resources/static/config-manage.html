@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字典配置 - 任务排期管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+        body { background-color: #f5f7fa; color: #333; }
+        .top-nav { background: #001529; padding: 0 24px; display: flex; align-items: center; height: 48px; }
+        .top-nav .logo { color: #fff; font-size: 16px; font-weight: 600; margin-right: 40px; }
+        .top-nav a { color: rgba(255,255,255,0.65); text-decoration: none; padding: 0 16px; line-height: 48px; font-size: 14px; transition: color 0.3s; }
+        .top-nav a:hover, .top-nav a.active { color: #fff; }
+        .top-nav .right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+        .top-nav .right span { color: rgba(255,255,255,0.65); font-size: 14px; }
+        .top-nav .right .logout-btn { color: rgba(255,255,255,0.65); background: none; border: none; cursor: pointer; font-size: 14px; }
+        .top-nav .right .logout-btn:hover { color: #ff4d4f; }
+        .page-content { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .page-header h3 { font-size: 20px; }
+        .btn { padding: 6px 16px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; font-size: 14px; background: #fff; }
+        .btn:hover { background: #f5f5f5; }
+        .btn-primary { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .btn-primary:hover { background: #40a9ff; }
+        .btn-danger { background: #ff4d4f; color: #fff; border-color: #ff4d4f; }
+        .btn-danger:hover { background: #ff7875; }
+        .btn-sm { padding: 3px 10px; font-size: 12px; }
+        .btn-link { background: none; border: none; color: #1890ff; cursor: pointer; font-size: 14px; padding: 3px 6px; }
+        .btn-link:hover { color: #40a9ff; }
+        .tab-bar { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #e8e8e8; }
+        .tab-item { padding: 10px 20px; cursor: pointer; font-size: 14px; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.3s; }
+        .tab-item:hover { color: #1890ff; }
+        .tab-item.active { color: #1890ff; border-bottom-color: #1890ff; font-weight: 500; }
+        .config-card { background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 16px; }
+        .config-card .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .config-card .card-header h4 { font-size: 16px; color: #333; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { background: #fafafa; padding: 10px 16px; text-align: left; font-weight: 600; border-bottom: 1px solid #e8e8e8; font-size: 13px; }
+        .data-table td { padding: 10px 16px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+        .data-table tr:hover td { background: #e6f7ff; }
+        .actions { display: flex; gap: 8px; }
+        .status-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+        .status-on { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+        .status-off { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+        .sort-num { display: inline-block; min-width: 30px; text-align: center; background: #f0f2f5; border-radius: 4px; padding: 2px 8px; font-size: 12px; color: #666; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 8px; padding: 24px; width: 480px; max-width: 90%; }
+        .modal h3 { margin-bottom: 20px; font-size: 18px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 14px; color: #666; }
+        .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .form-row { display: flex; gap: 12px; }
+        .form-row .form-group { flex: 1; }
+        .empty-tip { text-align: center; padding: 30px; color: #999; font-size: 14px; }
+    </style>
+</head>
+<body>
+<div class="top-nav">
+    <div class="logo">任务排期管理</div>
+    <a href="week-view.html">周排期</a>
+    <a href="demand-manage.html">需求管理</a>
+    <a href="user-manage.html">人员管理</a>
+    <a href="config-manage.html" class="active">字典配置</a>
+    <div class="right">
+        <span id="navUser"></span>
+        <button class="logout-btn" onclick="doLogout()">退出</button>
+    </div>
+</div>
+<div class="page-content">
+    <div class="page-header">
+        <h3>字典配置</h3>
+        <button class="btn btn-primary" onclick="showAddModal()">新增配置项</button>
+    </div>
+    <div class="tab-bar" id="tabBar"></div>
+    <div class="config-card">
+        <div class="card-header">
+            <h4 id="currentTypeName">全部</h4>
+        </div>
+        <table class="data-table">
+            <thead><tr><th>排序</th><th>显示名称</th><th>配置值</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="configTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 新增/编辑弹窗 -->
+<div class="modal-overlay" id="configModal">
+    <div class="modal">
+        <h3 id="configModalTitle">新增配置项</h3>
+        <input type="hidden" id="configId">
+        <div class="form-group"><label>配置类别</label>
+            <select id="formConfigType">
+                <option value="dept">部门</option>
+                <option value="task_type">任务类型</option>
+                <option value="demand_type">需求类型</option>
+                <option value="priority">优先级</option>
+                <option value="demand_status">需求状态</option>
+                <option value="role">角色</option>
+            </select>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>显示名称</label><input type="text" id="formLabel"></div>
+            <div class="form-group"><label>配置值</label><input type="text" id="formValue"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>排序号</label><input type="number" id="formSort" min="0" value="0"></div>
+            <div class="form-group"><label>状态</label>
+                <select id="formStatus"><option value="1">启用</option><option value="0">禁用</option></select>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveConfig()">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var token = localStorage.getItem('token');
+var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+if (!token) { location.href = 'login.html'; }
+document.getElementById('navUser').textContent = currentUser ? currentUser.realName : '';
+
+var TYPE_LABELS = {
+    'dept': '部门', 'task_type': '任务类型', 'demand_type': '需求类型', 'priority': '优先级',
+    'demand_status': '需求状态', 'role': '角色'
+};
+var currentType = '';
+var allData = {};
+
+function api(url, method, body) {
+    var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json' } };
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(url, opts).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.code === 401) { localStorage.removeItem('token'); localStorage.removeItem('currentUser'); location.href = 'login.html'; throw new Error('未登录'); }
+        return data;
+    });
+}
+function doLogout() {
+    api('/api/auth/logout', 'POST').catch(function(){});
+    localStorage.removeItem('token'); localStorage.removeItem('currentUser');
+    location.href = 'login.html';
+}
+function closeModal() { document.getElementById('configModal').classList.remove('active'); }
+
+function loadConfigs() {
+    api('/api/config/all').then(function(res) {
+        if (res.code !== 200) return;
+        allData = res.data || {};
+        renderTabs();
+        renderTable();
+    });
+}
+
+function renderTabs() {
+    var tabBar = document.getElementById('tabBar');
+    var html = '<div class="tab-item' + (!currentType ? ' active' : '') + '" onclick="switchTab(\'\')">全部</div>';
+    // 按预定义顺序显示 tab
+    var typeOrder = ['dept', 'task_type', 'demand_type', 'priority', 'demand_status', 'role'];
+    typeOrder.forEach(function(t) {
+        if (allData[t]) {
+            html += '<div class="tab-item' + (currentType === t ? ' active' : '') + '" onclick="switchTab(\'' + t + '\')">' + (TYPE_LABELS[t] || t) + ' (' + allData[t].length + ')</div>';
+        }
+    });
+    // 显示不在预定义列表中的自定义类别
+    Object.keys(allData).forEach(function(t) {
+        if (typeOrder.indexOf(t) === -1) {
+            html += '<div class="tab-item' + (currentType === t ? ' active' : '') + '" onclick="switchTab(\'' + t + '\')">' + (TYPE_LABELS[t] || t) + ' (' + allData[t].length + ')</div>';
+        }
+    });
+    tabBar.innerHTML = html;
+}
+
+function switchTab(type) {
+    currentType = type;
+    renderTabs();
+    renderTable();
+}
+
+function renderTable() {
+    var tbody = document.getElementById('configTableBody');
+    var typeName = document.getElementById('currentTypeName');
+    var items = [];
+    if (currentType) {
+        items = allData[currentType] || [];
+        typeName.textContent = TYPE_LABELS[currentType] || currentType;
+    } else {
+        typeName.textContent = '全部';
+        Object.keys(allData).forEach(function(t) { items = items.concat(allData[t]); });
+    }
+    if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-tip">暂无配置项</div></td></tr>';
+        return;
+    }
+    tbody.innerHTML = '';
+    items.forEach(function(c) {
+        var statusCls = c.status === 1 ? 'status-on' : 'status-off';
+        var statusTxt = c.status === 1 ? '启用' : '禁用';
+        var typeLabel = TYPE_LABELS[c.configType] || c.configType;
+        var nameCol = currentType ? c.configLabel : '<span style="color:#999;font-size:12px;">[' + typeLabel + ']</span> ' + c.configLabel;
+        tbody.innerHTML += '<tr>' +
+            '<td><span class="sort-num">' + (c.sortOrder != null ? c.sortOrder : 0) + '</span></td>' +
+            '<td>' + nameCol + '</td>' +
+            '<td>' + c.configValue + '</td>' +
+            '<td><span class="status-tag ' + statusCls + '">' + statusTxt + '</span></td>' +
+            '<td class="actions">' +
+                '<button class="btn btn-sm btn-primary" onclick="showEditModal(' + c.id + ')">编辑</button>' +
+                '<button class="btn-link" onclick="moveSort(' + c.id + ',-1)">↑</button>' +
+                '<button class="btn-link" onclick="moveSort(' + c.id + ',1)">↓</button>' +
+                '<button class="btn btn-sm btn-danger" onclick="deleteConfig(' + c.id + ')">删除</button>' +
+            '</td></tr>';
+    });
+}
+
+function showAddModal() {
+    document.getElementById('configModalTitle').textContent = '新增配置项';
+    document.getElementById('configId').value = '';
+    document.getElementById('formConfigType').value = currentType || 'task_type';
+    document.getElementById('formConfigType').disabled = false;
+    document.getElementById('formLabel').value = '';
+    document.getElementById('formValue').value = '';
+    document.getElementById('formSort').value = '0';
+    document.getElementById('formStatus').value = '1';
+    document.getElementById('configModal').classList.add('active');
+}
+
+function showEditModal(id) {
+    // 从 allData 中找到该配置项
+    var item = null;
+    Object.keys(allData).forEach(function(t) {
+        allData[t].forEach(function(c) { if (c.id === id) item = c; });
+    });
+    if (!item) return;
+    document.getElementById('configModalTitle').textContent = '编辑配置项';
+    document.getElementById('configId').value = item.id;
+    document.getElementById('formConfigType').value = item.configType;
+    document.getElementById('formConfigType').disabled = true;
+    document.getElementById('formLabel').value = item.configLabel;
+    document.getElementById('formValue').value = item.configValue;
+    document.getElementById('formSort').value = item.sortOrder != null ? item.sortOrder : 0;
+    document.getElementById('formStatus').value = item.status;
+    document.getElementById('configModal').classList.add('active');
+}
+
+function saveConfig() {
+    var id = document.getElementById('configId').value;
+    var data = {
+        configType: document.getElementById('formConfigType').value,
+        configLabel: document.getElementById('formLabel').value,
+        configValue: document.getElementById('formValue').value,
+        sortOrder: parseInt(document.getElementById('formSort').value) || 0,
+        status: parseInt(document.getElementById('formStatus').value)
+    };
+    if (!data.configLabel || !data.configValue) { alert('请填写显示名称和配置值'); return; }
+    if (id) data.id = parseInt(id);
+    api('/api/config', id ? 'PUT' : 'POST', data).then(function(res) {
+        if (res.code === 200) { closeModal(); loadConfigs(); }
+        else alert(res.msg);
+    });
+}
+
+function deleteConfig(id) {
+    if (!confirm('确定删除该配置项？')) return;
+    api('/api/config/' + id, 'DELETE').then(function(res) {
+        if (res.code === 200) loadConfigs();
+        else alert(res.msg);
+    });
+}
+
+/** 上移/下移排序 */
+function moveSort(id, direction) {
+    var type = null, items = null, idx = -1;
+    Object.keys(allData).forEach(function(t) {
+        allData[t].forEach(function(c, i) { if (c.id === id) { type = t; items = allData[t]; idx = i; } });
+    });
+    if (!items || idx < 0) return;
+    var swapIdx = idx + direction;
+    if (swapIdx < 0 || swapIdx >= items.length) return;
+    // 交换两个配置项的 sortOrder
+    var a = items[idx], b = items[swapIdx];
+    var tmpSort = a.sortOrder;
+    api('/api/config', 'PUT', { id: a.id, configType: a.configType, configLabel: a.configLabel, configValue: a.configValue, sortOrder: b.sortOrder, status: a.status }).then(function() {
+        return api('/api/config', 'PUT', { id: b.id, configType: b.configType, configLabel: b.configLabel, configValue: b.configValue, sortOrder: tmpSort, status: b.status });
+    }).then(function() { loadConfigs(); });
+}
+
+loadConfigs();
+</script>
+</body>
+</html>

@@ -2,7 +2,8 @@ package io.github.luckyqing.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import io.github.luckyqing.entity.Demand;
-import io.github.luckyqing.entity.SysUser;
+import io.github.luckyqing.entity.Project;
+import io.github.luckyqing.entity.User;
 import io.github.luckyqing.entity.Task;
 import io.github.luckyqing.vo.schedule.SchedulePersonRespVO;
 import io.github.luckyqing.vo.schedule.ScheduleReqVO;
@@ -23,13 +24,16 @@ import java.util.stream.Collectors;
 public class ScheduleService {
 
     @Autowired
-    private SysUserService userService;
+    private UserService userService;
 
     @Autowired
     private TaskService taskService;
 
     @Autowired
     private DemandService demandService;
+
+    @Autowired
+    private ProjectService projectService;
 
     /**
      * 获取周排期视图数据
@@ -41,7 +45,7 @@ public class ScheduleService {
      */
     public List<SchedulePersonRespVO> getWeekSchedule(ScheduleReqVO reqVO, Long selfUserId) {
         // 1. 确定人员范围
-        List<SysUser> users = resolveUsers(reqVO, selfUserId);
+        List<User> users = resolveUsers(reqVO, selfUserId);
 
         // 2. 查询日期范围内的所有任务
         List<Task> allTasks = taskService.getByDateRange(reqVO.getStartDate(), reqVO.getEndDate());
@@ -51,7 +55,7 @@ public class ScheduleService {
 
         // 4. 按人员组装排期数据
         List<SchedulePersonRespVO> result = new ArrayList<>();
-        for (SysUser user : users) {
+        for (User user : users) {
             List<Task> userTasks = filterUserTasks(allTasks, user, demandIdsInProject, reqVO.getKeyword());
 
             // 有关键词筛选时，跳过无任务的人员
@@ -68,12 +72,12 @@ public class ScheduleService {
     /**
      * 根据查询条件确定人员范围
      */
-    private List<SysUser> resolveUsers(ScheduleReqVO reqVO, Long selfUserId) {
+    private List<User> resolveUsers(ScheduleReqVO reqVO, Long selfUserId) {
         if (reqVO.isOnlySelf() && selfUserId != null) {
-            SysUser self = userService.getById(selfUserId);
+            User self = userService.getById(selfUserId);
             return self != null ? Collections.singletonList(self) : Collections.emptyList();
-        } else if (reqVO.getDeptId() != null) {
-            return userService.listByDept(reqVO.getDeptId());
+        } else if (reqVO.getDept() != null && !reqVO.getDept().isEmpty()) {
+            return userService.listByDept(reqVO.getDept());
         } else {
             return userService.list();
         }
@@ -96,7 +100,7 @@ public class ScheduleService {
     /**
      * 筛选某个用户在当前条件下的任务
      */
-    private List<Task> filterUserTasks(List<Task> allTasks, SysUser user,
+    private List<Task> filterUserTasks(List<Task> allTasks, User user,
                                        Set<Long> demandIdsInProject, String keyword) {
         return allTasks.stream()
                 .filter(t -> t.getAssigneeId().equals(user.getId()))
@@ -119,7 +123,7 @@ public class ScheduleService {
      * 组装单个人员的排期RespVO
      * 将任务按需求分组：有需求的任务归入需求主任务下作为子任务，无需求的作为独立任务
      */
-    private SchedulePersonRespVO buildPersonRespVO(SysUser user, List<Task> userTasks, ScheduleReqVO reqVO) {
+    private SchedulePersonRespVO buildPersonRespVO(User user, List<Task> userTasks, ScheduleReqVO reqVO) {
         // 按需求ID分组
         Map<Long, List<Task>> tasksByDemand = new LinkedHashMap<>();
         List<Task> independentTasks = new ArrayList<>();
@@ -169,6 +173,11 @@ public class ScheduleService {
         taskVO.setDemandId(demand.getId());
         taskVO.setTaskName(demand.getDemandName());
         taskVO.setTaskType(demand.getDemandType());
+        // 设置项目名称
+        if (demand.getProjectId() != null) {
+            Project project = projectService.getById(demand.getProjectId());
+            if (project != null) taskVO.setProjectName(project.getProjectName());
+        }
         taskVO.setStartDate(minStart);
         taskVO.setEndDate(maxEnd);
         taskVO.setTotalHours(totalH);

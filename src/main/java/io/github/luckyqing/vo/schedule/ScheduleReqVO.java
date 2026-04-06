@@ -14,8 +14,8 @@ public class ScheduleReqVO {
     /** 周结束日期 yyyy-MM-dd */
     private String endDate;
 
-    /** 部门ID（可选） */
-    private Long deptId;
+    /** 部门（字典值，可选） */
+    private String dept;
 
     /** 项目ID（可选） */
     private Long projectId;

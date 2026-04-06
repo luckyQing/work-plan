@@ -57,6 +57,7 @@
     <a href="week-view.html">周排期</a>
     <a href="demand-manage.html" class="active">需求管理</a>
     <a href="user-manage.html">人员管理</a>
+    <a href="config-manage.html">字典配置</a>
     <div class="right">
         <span id="navUser"></span>
         <button class="logout-btn" onclick="doLogout()">退出</button>
@@ -85,16 +86,16 @@
         <div class="form-group"><label>需求名称</label><input type="text" id="formDemandName"></div>
         <div class="form-row">
             <div class="form-group"><label>需求类型</label>
-                <select id="formDemandType"><option>需求</option><option>优化</option><option>Bug</option></select>
+                <select id="formDemandType"></select>
             </div>
             <div class="form-group"><label>所属项目</label><select id="formProject"></select></div>
         </div>
         <div class="form-row">
             <div class="form-group"><label>优先级</label>
-                <select id="formPriority"><option value="0">低</option><option value="1" selected>中</option><option value="2">高</option></select>
+                <select id="formPriority"></select>
             </div>
             <div class="form-group"><label>状态</label>
-                <select id="formDemandStatus"><option value="0">待开始</option><option value="1">进行中</option><option value="2">已完成</option></select>
+                <select id="formDemandStatus"></select>
             </div>
         </div>
         <div class="form-row">
@@ -116,8 +117,25 @@ var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 if (!token) { location.href = 'login.html'; }
 document.getElementById('navUser').textContent = currentUser ? currentUser.realName : '';
 
-var PRIORITY_MAP = { 0: ['低', 'priority-low'], 1: ['中', 'priority-mid'], 2: ['高', 'priority-high'] };
-var STATUS_MAP = { 0: ['待开始', 'status-0'], 1: ['进行中', 'status-1'], 2: ['已完成', 'status-2'] };
+var dictData = {};
+var PRIORITY_STYLES = { '0': 'priority-low', '1': 'priority-mid', '2': 'priority-high' };
+var STATUS_STYLES = { '0': 'status-0', '1': 'status-1', '2': 'status-2' };
+
+function fillSelect(selId, type, defaultVal) {
+    var sel = document.getElementById(selId);
+    if (!sel || !dictData[type]) return;
+    sel.innerHTML = '';
+    dictData[type].forEach(function(d) {
+        sel.innerHTML += '<option value="' + d.configValue + '"' + (d.configValue == defaultVal ? ' selected' : '') + '>' + d.configLabel + '</option>';
+    });
+}
+function getDictLabel(type, value) {
+    if (!dictData[type]) return value;
+    for (var i = 0; i < dictData[type].length; i++) {
+        if (dictData[type][i].configValue == value) return dictData[type][i].configLabel;
+    }
+    return value;
+}
 
 function api(url, method, body) {
     var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json' } };
@@ -149,16 +167,18 @@ function loadDemands() {
         var tbody = document.getElementById('demandTableBody');
         tbody.innerHTML = '';
         res.data.forEach(function(d) {
-            var p = PRIORITY_MAP[d.priority] || ['中', 'priority-mid'];
-            var s = STATUS_MAP[d.status] || ['待开始', 'status-0'];
+            var pLabel = getDictLabel('priority', d.priority);
+            var pStyle = PRIORITY_STYLES[String(d.priority)] || 'priority-mid';
+            var sLabel = getDictLabel('demand_status', d.status);
+            var sStyle = STATUS_STYLES[String(d.status)] || 'status-0';
             var period = (d.startDate || '-') + ' ~ ' + (d.endDate || '-');
             tbody.innerHTML += '<tr>' +
                 '<td>' + d.id + '</td>' +
                 '<td>' + d.demandName + '</td>' +
-                '<td>' + (d.demandType || '-') + '</td>' +
+                '<td>' + getDictLabel('demand_type', d.demandType) + '</td>' +
                 '<td>' + (d.projectName || '-') + '</td>' +
-                '<td><span class="priority-tag ' + p[1] + '">' + p[0] + '</span></td>' +
-                '<td><span class="status-tag ' + s[1] + '">' + s[0] + '</span></td>' +
+                '<td><span class="priority-tag ' + pStyle + '">' + pLabel + '</span></td>' +
+                '<td><span class="status-tag ' + sStyle + '">' + sLabel + '</span></td>' +
                 '<td>' + period + '</td>' +
                 '<td>' + (d.totalHours || 0) + 'h</td>' +
                 '<td>' + (d.creatorName || '-') + '</td>' +
@@ -220,6 +240,7 @@ function saveDemand() {
         description: document.getElementById('formDesc').value
     };
     if (!data.demandName) { alert('请输入需求名称'); return; }
+    if (!data.demandType) { alert('请选择需求类型'); return; }
     var method = id ? 'PUT' : 'POST';
     if (id) data.id = parseInt(id);
     api('/api/demand', method, data).then(function(res) {
@@ -236,8 +257,17 @@ function deleteDemand(id) {
     });
 }
 
-loadProjects();
-loadDemands();
+function loadAndInit() {
+    api('/api/config/all').then(function(res) {
+        if (res.code === 200) dictData = res.data || {};
+        fillSelect('formDemandType', 'demand_type', '需求');
+        fillSelect('formPriority', 'priority', '1');
+        fillSelect('formDemandStatus', 'demand_status', '0');
+        loadProjects();
+        loadDemands();
+    });
+}
+loadAndInit();
 </script>
 </body>
 </html>

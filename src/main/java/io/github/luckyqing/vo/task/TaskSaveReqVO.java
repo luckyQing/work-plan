@@ -1,7 +1,8 @@
 package io.github.luckyqing.vo.task;
 
 import lombok.Data;
-
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 /**
@@ -10,33 +11,27 @@ import java.math.BigDecimal;
 @Data
 public class TaskSaveReqVO {
 
-    /** 任务ID（修改时必传） */
     private Long id;
 
-    /** 任务名称 */
+    @NotBlank(message = "任务名称不能为空")
     private String taskName;
 
-    /** 任务类型: 开发/测试/设计/其他 */
+    @NotBlank(message = "任务类型不能为空")
     private String taskType;
 
-    /** 所属需求ID（为空表示独立任务） */
     private Long demandId;
 
-    /** 负责人ID（为空则默认当前登录用户） */
     private Long assigneeId;
 
-    /** 开始日期 yyyy-MM-dd */
+    @NotBlank(message = "开始日期不能为空")
     private String startDate;
 
-    /** 结束日期 yyyy-MM-dd */
+    @NotBlank(message = "结束日期不能为空")
     private String endDate;
 
-    /** 预估工时 */
     private BigDecimal totalHours;
 
-    /** 状态: 0待开始 1进行中 2已完成 */
     private Integer status;
 
-    /** 任务描述 */
     private String description;
 }

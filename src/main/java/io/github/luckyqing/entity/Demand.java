@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * 需求实体
  */
 @Data
-@TableName("demand")
+@TableName("t_demand")
 public class Demand {
 
     /** 主键ID */
@@ -47,6 +47,14 @@ public class Demand {
 
     /** 预估总工时 */
     private BigDecimal totalHours;
+
+    /** 创建人ID */
+    @TableField(fill = FieldFill.INSERT)
+    private Long createId;
+
+    /** 修改人ID */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private Long updateId;
 
     /** 创建时间 */
     @TableField(fill = FieldFill.INSERT)

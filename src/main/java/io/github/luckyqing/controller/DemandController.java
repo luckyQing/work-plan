@@ -6,8 +6,8 @@ import io.github.luckyqing.vo.demand.DemandSaveReqVO;
 import io.github.luckyqing.service.DemandService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import java.util.List;
 
 /**
@@ -51,7 +51,7 @@ public class DemandController {
      * @return 操作结果
      */
     @PostMapping
-    public R<Void> add(@RequestBody DemandSaveReqVO reqVO, HttpServletRequest request) {
+    public R<Void> add(@Valid @RequestBody DemandSaveReqVO reqVO, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         demandService.addDemand(reqVO, userId);
         return R.ok();
@@ -64,7 +64,7 @@ public class DemandController {
      * @return 操作结果
      */
     @PutMapping
-    public R<Void> update(@RequestBody DemandSaveReqVO reqVO) {
+    public R<Void> update(@Valid @RequestBody DemandSaveReqVO reqVO) {
         demandService.updateDemand(reqVO);
         return R.ok();
     }

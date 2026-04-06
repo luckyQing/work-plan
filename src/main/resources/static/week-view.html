@@ -80,6 +80,16 @@
         /* 可点击的任务条 */
         .progress-bar.clickable { cursor: pointer; transition: box-shadow 0.2s; }
         .progress-bar.clickable:hover { box-shadow: 0 0 0 2px rgba(24,144,255,0.3); }
+        /* 项目名标签 */
+        .project-tag { padding: 2px 6px; background-color: #722ed1; color: white; border-radius: 2px; margin-right: 8px; font-size: 10px; }
+        /* 表单校验错误 */
+        .form-group.has-error input, .form-group.has-error select, .form-group.has-error textarea { border-color: #ff4d4f; }
+        .form-group .error-msg { color: #ff4d4f; font-size: 12px; margin-top: 2px; display: none; }
+        .form-group.has-error .error-msg { display: block; }
+        /* 详情弹窗 */
+        .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+        .detail-label { width: 80px; color: #999; flex-shrink: 0; }
+        .detail-value { flex: 1; color: #333; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal-overlay.active { display: flex; }
         .modal { background: #fff; border-radius: 8px; padding: 24px; width: 480px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
@@ -97,6 +107,7 @@
     <a href="week-view.html" class="active">周排期</a>
     <a href="demand-manage.html">需求管理</a>
     <a href="user-manage.html">人员管理</a>
+    <a href="config-manage.html">字典配置</a>
     <div class="right">
         <span id="navUser"></span>
         <button class="logout-btn" onclick="doLogout()">退出</button>
@@ -139,15 +150,15 @@
     <div class="modal">
         <h3 id="taskModalTitle">录入任务</h3>
         <input type="hidden" id="taskId">
-        <div class="form-group"><label>任务名称</label><input type="text" id="taskName"></div>
-        <div class="form-group"><label>任务类型</label>
-            <select id="taskType"><option>开发</option><option>测试</option><option>设计</option><option>其他</option></select>
+        <div class="form-group"><label>任务名称 <span style="color:#ff4d4f">*</span></label><input type="text" id="taskName"><div class="error-msg">请输入任务名称</div></div>
+        <div class="form-group"><label>任务类型 <span style="color:#ff4d4f">*</span></label>
+            <select id="taskType"></select><div class="error-msg">请选择任务类型</div>
         </div>
         <div class="form-group"><label>关联需求</label><select id="taskDemandId"><option value="">无（独立任务）</option></select></div>
-        <div class="form-group"><label>负责人</label><select id="taskAssignee"></select></div>
-        <div class="form-group"><label>开始日期</label><input type="date" id="taskStart"></div>
-        <div class="form-group"><label>结束日期</label><input type="date" id="taskEnd"></div>
-        <div class="form-group"><label>预估工时(h)</label><input type="number" id="taskHours" step="0.5" min="0"></div>
+        <div class="form-group"><label>负责人 <span style="color:#ff4d4f">*</span></label><select id="taskAssignee"></select><div class="error-msg">请选择负责人</div></div>
+        <div class="form-group"><label>开始日期 <span style="color:#ff4d4f">*</span></label><input type="date" id="taskStart"><div class="error-msg">请选择开始日期</div></div>
+        <div class="form-group"><label>结束日期 <span style="color:#ff4d4f">*</span></label><input type="date" id="taskEnd"><div class="error-msg">请选择结束日期</div></div>
+        <div class="form-group"><label>预估工时(h) <span style="color:#ff4d4f">*</span></label><input type="number" id="taskHours" step="0.5" min="0"><div class="error-msg">请输入预估工时</div></div>
         <div class="form-group"><label>描述</label><textarea id="taskDesc"></textarea></div>
         <div class="form-actions">
             <button class="btn" onclick="closeModal('taskModal')">取消</button>
@@ -162,11 +173,11 @@
         <input type="hidden" id="demandId">
         <div class="form-group"><label>需求名称</label><input type="text" id="demandName"></div>
         <div class="form-group"><label>需求类型</label>
-            <select id="demandType"><option>需求</option><option>优化</option><option>Bug</option></select>
+            <select id="demandType"></select>
         </div>
         <div class="form-group"><label>所属项目</label><select id="demandProject"></select></div>
         <div class="form-group"><label>优先级</label>
-            <select id="demandPriority"><option value="0">低</option><option value="1" selected>中</option><option value="2">高</option></select>
+            <select id="demandPriority"></select>
         </div>
         <div class="form-group"><label>计划开始</label><input type="date" id="demandStart"></div>
         <div class="form-group"><label>计划结束</label><input type="date" id="demandEnd"></div>
@@ -179,9 +190,19 @@
     </div>
 </div>
 
+<!-- 任务详情弹窗 -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <h3>任务详情</h3>
+        <div id="detailContent"></div>
+        <div class="form-actions"><button class="btn" onclick="closeModal('detailModal')">关闭</button></div>
+    </div>
+</div>
+
 <!-- 任务操作弹出菜单 -->
 <div class="task-popup" id="taskPopup">
     <div class="popup-title" id="popupTitle"></div>
+    <div class="popup-item" onclick="viewTaskDetail()">📋 详情</div>
     <div class="popup-item" onclick="editTaskFromPopup()">✏️ 编辑</div>
     <div class="popup-item danger" onclick="deleteTaskFromPopup()">🗑️ 删除</div>
 </div>
@@ -239,15 +260,45 @@ function normalizeDate(v) {
     }
     return String(v).substring(0, 10);
 }
-function init() { weekStart = getMonday(); loadFilters(); loadSchedule(); }
-function loadFilters() {
-    api('/api/dept/list').then(function(res) {
-        if (res.code === 200) {
-            var sel = document.getElementById('deptFilter');
-            sel.innerHTML = '<option value="">全部部门</option>';
-            res.data.forEach(function(d) { sel.innerHTML += '<option value="' + d.id + '">' + d.deptName + '</option>'; });
-        }
+var dictData = {}; // 全局字典缓存
+function fillSelect(selId, type, defaultVal) {
+    var sel = document.getElementById(selId);
+    if (!sel || !dictData[type]) return;
+    sel.innerHTML = '';
+    dictData[type].forEach(function(d) {
+        sel.innerHTML += '<option value="' + d.configValue + '"' + (d.configValue == defaultVal ? ' selected' : '') + '>' + d.configLabel + '</option>';
     });
+}
+function getDictLabel(type, value) {
+    if (!dictData[type]) return value || '';
+    for (var i = 0; i < dictData[type].length; i++) {
+        if (dictData[type][i].configValue == value) return dictData[type][i].configLabel;
+    }
+    return value || '';
+}
+function loadDict(callback) {
+    api('/api/config/all').then(function(res) {
+        if (res.code === 200) { dictData = res.data || {}; }
+        if (callback) callback();
+    });
+}
+function init() {
+    weekStart = getMonday();
+    loadDict(function() {
+        fillSelect('taskType', 'task_type', '开发');
+        fillSelect('demandType', 'demand_type', '需求');
+        fillSelect('demandPriority', 'priority', '1');
+        loadFilters();
+        loadSchedule();
+    });
+}
+function loadFilters() {
+    // 部门从字典加载
+    var depts = dictData['dept'] || [];
+    var deptSel = document.getElementById('deptFilter');
+    deptSel.innerHTML = '<option value="">全部部门</option>';
+    depts.forEach(function(d) { deptSel.innerHTML += '<option value="' + d.configValue + '">' + d.configLabel + '</option>'; });
+
     api('/api/project/list').then(function(res) {
         if (res.code === 200) {
             var sel = document.getElementById('projectFilter');
@@ -262,12 +313,12 @@ function loadFilters() {
 function loadSchedule() {
     var weekDates = getWeekDates(weekStart);
     var endDateStr = fmtDate(weekDates[6]);
-    var deptId = document.getElementById('deptFilter').value;
+    var dept = document.getElementById('deptFilter').value;
     var projectId = document.getElementById('projectFilter').value;
     var onlySelf = document.getElementById('show-self').checked;
     var keyword = document.getElementById('searchInput').value;
     var url = '/api/schedule/week?startDate=' + weekStart + '&endDate=' + endDateStr;
-    if (deptId) url += '&deptId=' + deptId;
+    if (dept) url += '&dept=' + encodeURIComponent(dept);
     if (projectId) url += '&projectId=' + projectId;
     if (onlySelf) url += '&onlySelf=true';
     if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
@@ -450,14 +501,15 @@ function renderSingleDayTask(container, task) {
     html += '<span class="expand-icon' + (hasSubs ? '' : ' hidden') + '">▼</span>';
     html += '<div class="progress-bar"><div class="progress-content">';
     html += '<span class="hours">' + task.totalHours + 'h</span>';
-    html += '<span class="task-type">' + task.taskType + '</span>';
+    if (task.projectName) html += '<span class="project-tag">' + task.projectName + '</span>';
+    html += '<span class="task-type">' + getDictLabel('demand_type', task.taskType) + '</span>';
     html += '<span class="task-name">' + task.taskName + '</span>';
     html += '</div></div></div>';
     if (hasSubs) {
         html += '<div class="sub-tasks">';
         task.subTasks.forEach(function(s) {
             html += '<div class="sub-task"><div class="progress-bar"><div class="progress-content">';
-            html += '<span class="hours">' + s.totalHours + 'h</span><span class="task-type">' + s.type + '</span><span class="task-name">' + s.name + '</span>';
+            html += '<span class="hours">' + s.totalHours + 'h</span><span class="task-type">' + getDictLabel('task_type', s.type) + '</span><span class="task-name">' + s.name + '</span>';
             html += '</div></div></div>';
         });
         html += '</div>';
@@ -533,13 +585,14 @@ function renderCrossDayBar(cells, startContainer, task, item, weekDates) {
     var bar = '<div class="cross-day-bar" data-start-col="' + item.si + '" data-end-col="' + item.ei + '">';
     bar += '<div class="task-header' + (hasSubs ? '' : ' no-subtasks') + '"><span class="expand-icon' + (hasSubs ? '' : ' hidden') + '">▼</span>';
     bar += '<div class="progress-bar"><div class="progress-content"><span class="hours">' + task.totalHours + 'h</span>';
-    bar += '<span class="task-type">' + task.taskType + '</span><span class="task-name">' + task.taskName + '</span></div></div></div>';
+    if (task.projectName) bar += '<span class="project-tag">' + task.projectName + '</span>';
+    bar += '<span class="task-type">' + getDictLabel('demand_type', task.taskType) + '</span><span class="task-name">' + task.taskName + '</span></div></div></div>';
     if (hasSubs) {
         bar += '<div class="sub-tasks">';
         subInfos.forEach(function(info, idx) {
             bar += '<div class="sub-task" data-sub-start-col="' + info.si + '" data-sub-end-col="' + info.ei + '" data-sub-idx="' + idx + '">';
             bar += '<div class="progress-bar"><div class="progress-content"><span class="hours">' + info.sub.totalHours + 'h</span>';
-            bar += '<span class="task-type">' + info.sub.type + '</span><span class="task-name">' + info.sub.name + '</span></div></div></div>';
+            bar += '<span class="task-type">' + getDictLabel('task_type', info.sub.type) + '</span><span class="task-name">' + info.sub.name + '</span></div></div></div>';
         });
         bar += '</div>';
     }
@@ -726,6 +779,30 @@ function deleteTaskFromPopup() {
         else { alert(res.msg || '删除失败'); }
     });
 }
+
+function viewTaskDetail() {
+    if (!popupTaskId) return;
+    var id = popupTaskId;
+    popupTaskId = null;
+    hideTaskPopup();
+    api('/api/task/' + id).then(function(res) {
+        if (res.code !== 200 || !res.data) { alert('获取任务详情失败'); return; }
+        var t = res.data;
+        var html = '';
+        html += '<div class="detail-row"><div class="detail-label">任务名称</div><div class="detail-value">' + (t.taskName || '-') + '</div></div>';
+        html += '<div class="detail-row"><div class="detail-label">任务类型</div><div class="detail-value">' + (t.taskType || '-') + '</div></div>';
+        html += '<div class="detail-row"><div class="detail-label">需求</div><div class="detail-value">' + (t.demandName || '独立任务') + '</div></div>';
+        html += '<div class="detail-row"><div class="detail-label">负责人</div><div class="detail-value">' + (t.assigneeName || '-') + '</div></div>';
+        html += '<div class="detail-row"><div class="detail-label">开始日期</div><div class="detail-value">' + normalizeDate(t.startDate) + '</div></div>';
+        html += '<div class="detail-row"><div class="detail-label">结束日期</div><div class="detail-value">' + normalizeDate(t.endDate) + '</div></div>';
+        html += '<div class="detail-row"><div class="detail-label">预估工时</div><div class="detail-value">' + (t.totalHours || 0) + 'h</div></div>';
+        html += '<div class="detail-row"><div class="detail-label">状态</div><div class="detail-value">' + (['待开始','进行中','已完成'][t.status] || '-') + '</div></div>';
+        html += '<div class="detail-row"><div class="detail-label">描述</div><div class="detail-value">' + (t.description || '-') + '</div></div>';
+        document.getElementById('detailContent').innerHTML = html;
+        document.getElementById('detailModal').classList.add('active');
+    });
+}
+
 /* 任务弹窗 */
 function showTaskModal() {
     document.getElementById('taskModalTitle').textContent = '录入任务';
@@ -754,12 +831,23 @@ function showTaskModal() {
     document.getElementById('taskModal').classList.add('active');
 }
 function saveTask() {
+    // 清除之前的错误状态
+    document.querySelectorAll('#taskModal .form-group').forEach(function(g) { g.classList.remove('has-error'); });
     var id = document.getElementById('taskId').value;
     var data = { taskName: document.getElementById('taskName').value, taskType: document.getElementById('taskType').value,
         demandId: document.getElementById('taskDemandId').value || null, assigneeId: document.getElementById('taskAssignee').value,
         startDate: document.getElementById('taskStart').value, endDate: document.getElementById('taskEnd').value,
         totalHours: parseFloat(document.getElementById('taskHours').value) || 0, description: document.getElementById('taskDesc').value };
-    if (!data.taskName) { alert('请输入任务名称'); return; }
+    // 必填校验（标红提示）
+    var valid = true;
+    var fields = [
+        ['taskName', data.taskName], ['taskType', data.taskType], ['taskAssignee', data.assigneeId],
+        ['taskStart', data.startDate], ['taskEnd', data.endDate], ['taskHours', document.getElementById('taskHours').value]
+    ];
+    fields.forEach(function(f) {
+        if (!f[1]) { document.getElementById(f[0]).closest('.form-group').classList.add('has-error'); valid = false; }
+    });
+    if (!valid) return;
     if (id) data.id = parseInt(id);
     api('/api/task', id ? 'PUT' : 'POST', data).then(function(res) {
         if (res.code === 200) { closeModal('taskModal'); loadSchedule(); } else alert(res.msg);
@@ -784,6 +872,7 @@ function saveDemand() {
         startDate: document.getElementById('demandStart').value || null, endDate: document.getElementById('demandEnd').value || null,
         totalHours: parseFloat(document.getElementById('demandHours').value) || 0, description: document.getElementById('demandDesc').value };
     if (!data.demandName) { alert('请输入需求名称'); return; }
+    if (!data.demandType) { alert('请选择需求类型'); return; }
     if (id) data.id = parseInt(id);
     api('/api/demand', id ? 'PUT' : 'POST', data).then(function(res) {
         if (res.code === 200) { closeModal('demandModal'); loadSchedule(); } else alert(res.msg);

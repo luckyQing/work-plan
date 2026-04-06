@@ -142,3 +142,26 @@ INSERT INTO `t_user` (`id`, `username`, `password`, `real_name`, `dept`, `role`,
 /*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;
+
+-- 工时录入表
+CREATE TABLE IF NOT EXISTS t_work_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    task_id BIGINT NOT NULL COMMENT '关联任务ID',
+    user_id BIGINT NOT NULL COMMENT '录入人ID',
+    log_date DATE NOT NULL COMMENT '工作日期',
+    hours DECIMAL(4,1) NOT NULL COMMENT '录入工时',
+    remark VARCHAR(500) COMMENT '备注',
+    create_id BIGINT COMMENT '创建人ID',
+    update_id BIGINT COMMENT '修改人ID',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT DEFAULT 0,
+    INDEX idx_user_date (user_id, log_date),
+    INDEX idx_task_id (task_id)
+) COMMENT '工时录入表';
+
+-- 需求表新增人员字段（已有表执行）
+ALTER TABLE t_demand
+    ADD COLUMN IF NOT EXISTS product_members VARCHAR(500) COMMENT '产品人员（逗号分隔用户ID）',
+    ADD COLUMN IF NOT EXISTS test_members VARCHAR(500) COMMENT '测试人员（逗号分隔用户ID）',
+    ADD COLUMN IF NOT EXISTS dev_members VARCHAR(500) COMMENT '研发人员（逗号分隔用户ID）';

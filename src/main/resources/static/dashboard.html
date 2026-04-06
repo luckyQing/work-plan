@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作台 - 任务排期管理系统</title>
+    <link rel="stylesheet" href="css/layout.css">
+    <style>
+        .main-content { display: flex; flex-direction: column; overflow: hidden; }
+        .page-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+        /* 今日统计栏 */
+        .stat-bar { background: #fff; border-bottom: 1px solid #f0f0f0; padding: 10px 24px; display: flex; align-items: center; gap: 20px; flex-shrink: 0; }
+        .stat-bar .stat-tabs { display: flex; gap: 16px; }
+        .stat-tab { font-size: 14px; color: #666; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+        .stat-tab.active { color: #1890ff; background: #e6f7ff; }
+        .stat-bar .stat-info { font-size: 13px; color: #999; margin-left: 8px; }
+        .stat-bar .stat-info span { color: #1890ff; font-weight: 600; }
+        .stat-bar .add-btn { margin-left: auto; padding: 6px 16px; background: #1890ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .stat-bar .add-btn:hover { background: #40a9ff; }
+        /* 主体 2:1 布局 */
+        .body-wrap { flex: 1; display: flex; overflow: hidden; }
+        .panel-left { flex: 2; overflow-y: auto; padding: 16px 12px 16px 24px; }
+        .panel-right { flex: 1; min-width: 300px; max-width: 380px; border-left: 1px solid #f0f0f0; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+        /* 任务卡片网格 */
+        .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+        .task-card {
+            background: #fff; border-radius: 8px; padding: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08); border: 1px solid #f0f0f0;
+            position: relative; overflow: hidden;
+        }
+        .task-card .card-category { font-size: 12px; color: #999; margin-bottom: 6px; }
+        .task-card .card-title { font-size: 16px; font-weight: 600; color: #222; margin-bottom: 8px; line-height: 1.4; }
+        .task-card .card-meta { font-size: 12px; color: #888; margin-bottom: 12px; line-height: 1.8; }
+        .task-card .card-meta div { display: flex; gap: 4px; }
+        .task-card .progress-wrap { margin-bottom: 6px; }
+        .task-card .progress-bg { height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
+        .task-card .progress-fill { height: 100%; background: #1890ff; border-radius: 4px; transition: width 0.4s; }
+        .task-card.done .progress-fill { background: #52c41a; }
+        .task-card .progress-label { font-size: 12px; color: #666; margin-top: 4px; }
+        .task-card .card-footer { margin-top: 10px; padding-top: 10px; border-top: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; }
+        .task-card .today-logged { font-size: 13px; color: #1890ff; background: #e6f7ff; padding: 4px 10px; border-radius: 4px; }
+        .task-card .log-btn { padding: 5px 14px; background: #1890ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .task-card .log-btn:hover { background: #40a9ff; }
+        /* 完成水印 */
+        .done-stamp {
+            position: absolute; right: 12px; top: 12px;
+            width: 56px; height: 56px; border-radius: 50%;
+            border: 3px solid #52c41a; color: #52c41a;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; transform: rotate(-15deg);
+            opacity: 0.7;
+        }
+        /* 超期未完成卡片样式 */
+        .task-card.overdue { border: 1px solid #ffccc7; background: #fff2f0; }
+        .task-card.overdue .progress-fill { background: #ff4d4f; }
+        .task-card.overdue .card-title { color: #cf1322; }
+        .overdue-badge { display: inline-block; background: #ff4d4f; color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
+        /* 右侧工时面板 */
+        .log-panel-header { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; font-size: 14px; font-weight: 600; color: #333; }
+        .log-panel-header .total { color: #1890ff; }
+        .log-table { width: 100%; border-collapse: collapse; }
+        .log-table th { padding: 8px 12px; font-size: 13px; color: #999; font-weight: normal; border-bottom: 1px solid #f0f0f0; text-align: left; }
+        .log-table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #f9f9f9; }
+        .log-table .task-name-cell { max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .log-table .del-btn { color: #1890ff; background: none; border: none; cursor: pointer; font-size: 13px; }
+        .log-table .del-btn:hover { color: #ff4d4f; }
+        .log-list-wrap { flex: 1; overflow-y: auto; }
+        /* 弹窗 */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 8px; padding: 24px; width: 400px; max-width: 90%; }
+        .modal h3 { margin-bottom: 16px; font-size: 17px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 14px; color: #666; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; }
+        .form-group textarea { height: 70px; resize: vertical; }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+        .btn { padding: 6px 16px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; font-size: 14px; background: #fff; }
+        .btn-primary { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .btn-primary:hover { background: #40a9ff; }
+    </style>
+</head>
+<body>
+<script src="js/layout.js"></script>
+<div class="main-content">
+<div class="page-wrap">
+    <!-- 统计栏 -->
+    <div class="stat-bar">
+        <div class="stat-tabs">
+            <span class="stat-tab active">今日</span>
+        </div>
+        <div class="stat-info" id="statInfo">今日到期任务 <span id="totalCount">0</span> 个，超时未完成任务 <span id="overdueCount">0</span> 个</div>
+        <button class="add-btn" onclick="showLogModal(null)">添加任务</button>
+    </div>
+    <!-- 主体 -->
+    <div class="body-wrap">
+        <!-- 左侧任务卡片 -->
+        <div class="panel-left">
+            <div class="task-grid" id="taskGrid">
+                <div class="empty-tip">加载中...</div>
+            </div>
+        </div>
+        <!-- 右侧工时录入 -->
+        <div class="panel-right">
+            <div class="log-panel-header">
+                今日已录入 <span class="total" id="totalHours">0</span> 小时
+            </div>
+            <div class="log-list-wrap">
+                <table class="log-table">
+                    <thead><tr><th>任务名</th><th>花费(时)</th><th>录入时间</th><th>操作</th></tr></thead>
+                    <tbody id="logTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- 工时录入弹窗 -->
+<div class="modal-overlay" id="logModal">
+    <div class="modal">
+        <h3>录入工时</h3>
+        <input type="hidden" id="logTaskId">
+        <div class="form-group">
+            <label>任务</label>
+            <input type="text" id="logTaskName" readonly style="background:#f5f5f5;">
+        </div>
+        <div class="form-group">
+            <label>工作日期</label>
+            <input type="date" id="logDate">
+        </div>
+        <div class="form-group">
+            <label>工时（小时）</label>
+            <input type="number" id="logHours" step="0.5" min="0.5" max="24" placeholder="请输入工时">
+        </div>
+        <div class="form-group">
+            <label>备注</label>
+            <textarea id="logRemark" placeholder="可选"></textarea>
+        </div>
+        <div class="form-actions">
+            <button class="btn" onclick="closeLogModal()">取消</button>
+            <button class="btn btn-primary" onclick="submitLog()">确认录入</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var token = localStorage.getItem('token');
+var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+if (!token) { location.href = 'login.html'; }
+
+function api(url, method, body) {
+    var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json' } };
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(url, opts).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.code === 401) { localStorage.removeItem('token'); localStorage.removeItem('currentUser'); location.href = 'login.html'; throw new Error('未登录'); }
+        return data;
+    });
+}
+
+function fmtDate(d) {
+    var m = d.getMonth()+1, dy = d.getDate();
+    return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(dy<10?'0'+dy:dy);
+}
+var today = fmtDate(new Date());
+
+function loadDashboard() {
+    api('/api/worklog/dashboard').then(function(res) {
+        if (res.code !== 200) return;
+        var tasks = res.data || [];
+        var grid = document.getElementById('taskGrid');
+        document.getElementById('totalCount').textContent = tasks.length;
+        var overdue = tasks.filter(function(t) { return t.overdue === true; }).length;
+        document.getElementById('overdueCount').textContent = overdue;
+        if (tasks.length === 0) { grid.innerHTML = '<div class="empty-tip">今日暂无任务 🎉</div>'; return; }
+        grid.innerHTML = '';
+        tasks.forEach(function(t) {
+            var done = t.status === 2 || t.progressPercent >= 100;
+            var isOverdue = t.overdue === true;
+            var pct = t.progressPercent || 0;
+            var loggedH = t.totalLoggedHours || 0;
+            var planH = t.totalHours || 0;
+            var todayH = t.todayLoggedHours || 0;
+            var card = document.createElement('div');
+            card.className = 'task-card' + (done ? ' done' : '') + (isOverdue ? ' overdue' : '');
+            card.innerHTML =
+                '<div class="card-category">' + (t.projectName || '独立任务') + '</div>' +
+                '<div class="card-title">' + t.taskName + (isOverdue ? '<span class="overdue-badge">已超期</span>' : '') + '</div>' +
+                '<div class="card-meta">' +
+                    '<div>日期：' + (t.startDate || '') + ' ~ ' + (t.endDate || '') + '</div>' +
+                    '<div>计划工时：' + planH + '小时&nbsp;&nbsp;派发人：' + (t.assigneeName || '-') + '</div>' +
+                '</div>' +
+                '<div class="progress-wrap">' +
+                    '<div class="progress-bg"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+                    '<div class="progress-label">' + pct + '% (' + loggedH + '/' + planH + ') 小时</div>' +
+                '</div>' +
+                '<div class="card-footer">' +
+                    '<span class="today-logged">今日已录入：' + todayH + '小时</span>' +
+                    '<button class="log-btn" onclick="showLogModal(' + t.taskId + ', \'' + t.taskName + '\')">录入工时</button>' +
+                '</div>' +
+                (done ? '<div class="done-stamp">已完成</div>' : '');
+            grid.appendChild(card);
+        });
+    });
+}
+
+function loadTodayLogs() {
+    api('/api/worklog/today').then(function(res) {
+        if (res.code !== 200) return;
+        var logs = res.data || [];
+        var tbody = document.getElementById('logTableBody');
+        tbody.innerHTML = '';
+        var total = 0;
+        logs.forEach(function(l) {
+            total += parseFloat(l.hours) || 0;
+            var time = l.createTime ? String(l.createTime).substring(11, 19) : '';
+            tbody.innerHTML += '<tr>' +
+                '<td class="task-name-cell" title="' + (l.taskName || '') + '">' + (l.taskName || '-') + '</td>' +
+                '<td>' + l.hours + '</td>' +
+                '<td>' + time + '</td>' +
+                '<td><button class="del-btn" onclick="deleteLog(' + l.id + ')">删除</button></td>' +
+                '</tr>';
+        });
+        document.getElementById('totalHours').textContent = total.toFixed(1);
+    });
+}
+
+function showLogModal(taskId, taskName) {
+    document.getElementById('logTaskId').value = taskId || '';
+    document.getElementById('logTaskName').value = taskName || '';
+    document.getElementById('logDate').value = today;
+    document.getElementById('logHours').value = '';
+    document.getElementById('logRemark').value = '';
+    document.getElementById('logModal').classList.add('active');
+}
+function closeLogModal() { document.getElementById('logModal').classList.remove('active'); }
+function submitLog() {
+    var taskId = document.getElementById('logTaskId').value;
+    var hours = document.getElementById('logHours').value;
+    if (!taskId) { alert('请选择任务'); return; }
+    if (!hours || parseFloat(hours) <= 0) { alert('请输入有效工时'); return; }
+    api('/api/worklog', 'POST', {
+        taskId: parseInt(taskId),
+        logDate: document.getElementById('logDate').value,
+        hours: parseFloat(hours),
+        remark: document.getElementById('logRemark').value
+    }).then(function(res) {
+        if (res.code === 200) { closeLogModal(); loadDashboard(); loadTodayLogs(); }
+        else { alert(res.msg); }
+    });
+}
+function deleteLog(id) {
+    if (!confirm('确定删除该工时记录？')) return;
+    api('/api/worklog/' + id, 'DELETE').then(function(res) {
+        if (res.code === 200) { loadDashboard(); loadTodayLogs(); }
+        else { alert(res.msg); }
+    });
+}
+
+loadDashboard();
+loadTodayLogs();
+</script>
+</body>
+</html>

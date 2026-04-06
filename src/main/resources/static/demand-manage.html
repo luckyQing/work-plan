@@ -31,15 +31,34 @@
         .status-2 { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal-overlay.active { display: flex; }
-        .modal { background: #fff; border-radius: 8px; padding: 24px; width: 520px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal { background: #fff; border-radius: 8px; padding: 24px; width: 600px; max-width: 95%; max-height: 92vh; overflow-y: auto; }
         .modal h3 { margin-bottom: 20px; font-size: 18px; }
         .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; margin-bottom: 4px; font-size: 14px; color: #666; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 14px; color: #555; }
+        .required-star { color: #ff4d4f; margin-left: 2px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; transition: border-color 0.2s; }
         .form-group textarea { height: 80px; resize: vertical; }
+        .form-group.has-error input, .form-group.has-error select, .form-group.has-error .multi-select-box { border-color: #ff4d4f !important; }
+        .form-group .err-msg { color: #ff4d4f; font-size: 12px; margin-top: 3px; display: none; }
+        .form-group.has-error .err-msg { display: block; }
         .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
         .form-row { display: flex; gap: 12px; }
         .form-row .form-group { flex: 1; }
+        /* 多选组件 */
+        .multi-select-box {
+            border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px 8px; min-height: 36px;
+            display: flex; flex-wrap: wrap; gap: 4px; cursor: pointer; background: #fff;
+        }
+        .multi-select-box:hover { border-color: #40a9ff; }
+        .ms-tag { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; border-radius: 3px; padding: 1px 6px; font-size: 12px; display: flex; align-items: center; gap: 3px; }
+        .ms-tag .ms-del { cursor: pointer; color: #999; font-size: 14px; line-height: 1; }
+        .ms-tag .ms-del:hover { color: #ff4d4f; }
+        .ms-placeholder { color: #bbb; font-size: 14px; line-height: 28px; }
+        .ms-dropdown { position: absolute; background: #fff; border: 1px solid #d9d9d9; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 2000; max-height: 200px; overflow-y: auto; min-width: 200px; }
+        .ms-option { padding: 8px 12px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .ms-option:hover { background: #e6f7ff; }
+        .ms-option.selected { color: #1890ff; }
+        .ms-option input[type=checkbox] { pointer-events: none; }
     </style>
 </head>
 <body>
@@ -53,7 +72,8 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th>ID</th><th>需求名称</th><th>类型</th><th>项目</th><th>优先级</th><th>状态</th><th>计划周期</th><th>工时</th><th>创建人</th><th>操作</th>
+                <th>ID</th><th>需求名称</th><th>类型</th><th>项目</th><th>优先级</th><th>状态</th>
+                <th>计划周期</th><th>工时</th><th>研发人员</th><th>创建人</th><th>操作</th>
             </tr>
         </thead>
         <tbody id="demandTableBody"></tbody>
@@ -65,27 +85,77 @@
     <div class="modal">
         <h3 id="demandModalTitle">新增需求</h3>
         <input type="hidden" id="demandId">
-        <div class="form-group"><label>需求名称</label><input type="text" id="formDemandName"></div>
+        <div class="form-group">
+            <label>需求名称<span class="required-star">*</span></label>
+            <input type="text" id="formDemandName" placeholder="请输入需求名称">
+            <div class="err-msg">请输入需求名称</div>
+        </div>
         <div class="form-row">
-            <div class="form-group"><label>需求类型</label>
+            <div class="form-group">
+                <label>需求类型<span class="required-star">*</span></label>
                 <select id="formDemandType"></select>
+                <div class="err-msg">请选择需求类型</div>
             </div>
-            <div class="form-group"><label>所属项目</label><select id="formProject"></select></div>
+            <div class="form-group">
+                <label>所属项目<span class="required-star">*</span></label>
+                <select id="formProject"><option value="">请选择</option></select>
+                <div class="err-msg">请选择所属项目</div>
+            </div>
         </div>
         <div class="form-row">
-            <div class="form-group"><label>优先级</label>
+            <div class="form-group">
+                <label>优先级<span class="required-star">*</span></label>
                 <select id="formPriority"></select>
+                <div class="err-msg">请选择优先级</div>
             </div>
-            <div class="form-group"><label>状态</label>
+            <div class="form-group">
+                <label>状态<span class="required-star">*</span></label>
                 <select id="formDemandStatus"></select>
+                <div class="err-msg">请选择状态</div>
             </div>
         </div>
         <div class="form-row">
-            <div class="form-group"><label>计划开始</label><input type="date" id="formStartDate"></div>
-            <div class="form-group"><label>计划结束</label><input type="date" id="formEndDate"></div>
+            <div class="form-group">
+                <label>计划开始<span class="required-star">*</span></label>
+                <input type="date" id="formStartDate">
+                <div class="err-msg">请选择计划开始日期</div>
+            </div>
+            <div class="form-group">
+                <label>计划结束<span class="required-star">*</span></label>
+                <input type="date" id="formEndDate">
+                <div class="err-msg">请选择计划结束日期</div>
+            </div>
         </div>
-        <div class="form-group"><label>预估工时(h)</label><input type="number" id="formHours" step="0.5" min="0"></div>
-        <div class="form-group"><label>描述</label><textarea id="formDesc"></textarea></div>
+        <div class="form-group">
+            <label>预估工时(h)<span class="required-star">*</span></label>
+            <input type="number" id="formHours" step="0.5" min="0" placeholder="请输入预估工时">
+            <div class="err-msg">请输入预估工时</div>
+        </div>
+        <div class="form-group">
+            <label>产品人员<span class="required-star">*</span></label>
+            <div class="multi-select-box" id="msProductBox" onclick="toggleDropdown('product')">
+                <span class="ms-placeholder" id="msProductPlaceholder">请选择产品人员</span>
+            </div>
+            <div class="err-msg">请选择产品人员</div>
+        </div>
+        <div class="form-group">
+            <label>测试人员<span class="required-star">*</span></label>
+            <div class="multi-select-box" id="msTestBox" onclick="toggleDropdown('test')">
+                <span class="ms-placeholder" id="msTestPlaceholder">请选择测试人员</span>
+            </div>
+            <div class="err-msg">请选择测试人员</div>
+        </div>
+        <div class="form-group">
+            <label>研发人员<span class="required-star">*</span></label>
+            <div class="multi-select-box" id="msDevBox" onclick="toggleDropdown('dev')">
+                <span class="ms-placeholder" id="msDevPlaceholder">请选择研发人员</span>
+            </div>
+            <div class="err-msg">请选择研发人员</div>
+        </div>
+        <div class="form-group">
+            <label>描述</label>
+            <textarea id="formDesc" placeholder="可选"></textarea>
+        </div>
         <div class="form-actions">
             <button class="btn" onclick="closeModal()">取消</button>
             <button class="btn btn-primary" onclick="saveDemand()">保存</button>
@@ -100,8 +170,12 @@ var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 if (!token) { location.href = 'login.html'; }
 
 var dictData = {};
+var allUsers = [];
 var PRIORITY_STYLES = { '0': 'priority-low', '1': 'priority-mid', '2': 'priority-high' };
 var STATUS_STYLES = { '0': 'status-0', '1': 'status-1', '2': 'status-2' };
+// 多选状态
+var msSelected = { product: [], test: [], dev: [] };
+var msDropdown = null;
 
 function fillSelect(selId, type, defaultVal) {
     var sel = document.getElementById(selId);
@@ -118,7 +192,6 @@ function getDictLabel(type, value) {
     }
     return value;
 }
-
 function api(url, method, body) {
     var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json' } };
     if (token) opts.headers['Authorization'] = 'Bearer ' + token;
@@ -129,6 +202,92 @@ function api(url, method, body) {
     });
 }
 
+/* ===== 多选组件 ===== */
+function toggleDropdown(type) {
+    if (msDropdown) { msDropdown.remove(); msDropdown = null; if (msDropdown && msDropdown._type === type) return; }
+    var boxId = 'ms' + type.charAt(0).toUpperCase() + type.slice(1) + 'Box';
+    var box = document.getElementById(boxId);
+    var rect = box.getBoundingClientRect();
+    var dd = document.createElement('div');
+    dd.className = 'ms-dropdown';
+    dd._type = type;
+    dd.style.left = rect.left + 'px';
+    dd.style.top = (rect.bottom + window.scrollY + 2) + 'px';
+    dd.style.width = rect.width + 'px';
+    allUsers.forEach(function(u) {
+        var sel = msSelected[type].indexOf(String(u.id)) >= 0;
+        var opt = document.createElement('div');
+        opt.className = 'ms-option' + (sel ? ' selected' : '');
+        opt.innerHTML = '<input type="checkbox"' + (sel ? ' checked' : '') + '> ' + u.realName;
+        opt.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var idx = msSelected[type].indexOf(String(u.id));
+            if (idx >= 0) { msSelected[type].splice(idx, 1); opt.classList.remove('selected'); opt.querySelector('input').checked = false; }
+            else { msSelected[type].push(String(u.id)); opt.classList.add('selected'); opt.querySelector('input').checked = true; }
+            renderMsTags(type);
+        });
+        dd.appendChild(opt);
+    });
+    document.body.appendChild(dd);
+    msDropdown = dd;
+}
+function renderMsTags(type) {
+    var boxId = 'ms' + type.charAt(0).toUpperCase() + type.slice(1) + 'Box';
+    var phId = 'ms' + type.charAt(0).toUpperCase() + type.slice(1) + 'Placeholder';
+    var box = document.getElementById(boxId);
+    var ph = document.getElementById(phId);
+    // 清除旧 tag
+    box.querySelectorAll('.ms-tag').forEach(function(t) { t.remove(); });
+    if (msSelected[type].length === 0) { ph.style.display = ''; return; }
+    ph.style.display = 'none';
+    msSelected[type].forEach(function(uid) {
+        var user = allUsers.find(function(u) { return String(u.id) === uid; });
+        if (!user) return;
+        var tag = document.createElement('span');
+        tag.className = 'ms-tag';
+        tag.innerHTML = user.realName + '<span class="ms-del" data-uid="' + uid + '" data-type="' + type + '">×</span>';
+        tag.querySelector('.ms-del').addEventListener('click', function(e) {
+            e.stopPropagation();
+            var idx = msSelected[type].indexOf(uid);
+            if (idx >= 0) msSelected[type].splice(idx, 1);
+            renderMsTags(type);
+        });
+        box.insertBefore(tag, ph);
+    });
+}
+function setMsSelected(type, ids) {
+    msSelected[type] = ids ? ids.split(',').filter(Boolean) : [];
+    renderMsTags(type);
+}
+function getMsValue(type) { return msSelected[type].join(','); }
+document.addEventListener('click', function(e) {
+    if (msDropdown && !e.target.closest('.ms-dropdown') && !e.target.closest('.multi-select-box')) {
+        msDropdown.remove(); msDropdown = null;
+    }
+});
+
+/* ===== 表单校验 ===== */
+function validateField(id, value) {
+    var el = document.getElementById(id);
+    if (!el) return true;
+    var group = el.closest('.form-group');
+    if (!group) return true;
+    var ok = value !== null && value !== undefined && String(value).trim() !== '' && value !== '0' || typeof value === 'number';
+    // 对于数字类型特殊处理
+    if (typeof value === 'number') ok = !isNaN(value);
+    group.classList.toggle('has-error', !ok);
+    return ok;
+}
+function validateMs(type) {
+    var boxId = 'ms' + type.charAt(0).toUpperCase() + type.slice(1) + 'Box';
+    var box = document.getElementById(boxId);
+    var group = box.closest('.form-group');
+    var ok = msSelected[type].length > 0;
+    group.classList.toggle('has-error', !ok);
+    return ok;
+}
+
+/* ===== 数据加载 ===== */
 function loadProjects() {
     api('/api/project/list').then(function(res) {
         if (res.code !== 200) return;
@@ -137,7 +296,11 @@ function loadProjects() {
         document.getElementById('formProject').innerHTML = html;
     });
 }
-
+function loadUsers() {
+    api('/api/user/list').then(function(res) {
+        if (res.code === 200) allUsers = res.data || [];
+    });
+}
 function loadDemands() {
     api('/api/demand/list').then(function(res) {
         if (res.code !== 200) return;
@@ -149,6 +312,7 @@ function loadDemands() {
             var sLabel = getDictLabel('demand_status', d.status);
             var sStyle = STATUS_STYLES[String(d.status)] || 'status-0';
             var period = (d.startDate || '-') + ' ~ ' + (d.endDate || '-');
+            var devNames = getNamesByIds(d.devMembers);
             tbody.innerHTML += '<tr>' +
                 '<td>' + d.id + '</td>' +
                 '<td>' + d.demandName + '</td>' +
@@ -158,6 +322,7 @@ function loadDemands() {
                 '<td><span class="status-tag ' + sStyle + '">' + sLabel + '</span></td>' +
                 '<td>' + period + '</td>' +
                 '<td>' + (d.totalHours || 0) + 'h</td>' +
+                '<td>' + (devNames || '-') + '</td>' +
                 '<td>' + (d.creatorName || '-') + '</td>' +
                 '<td class="actions">' +
                     '<button class="btn btn-sm btn-primary" onclick="showEditModal(' + d.id + ')">编辑</button>' +
@@ -166,30 +331,44 @@ function loadDemands() {
         });
     });
 }
+function getNamesByIds(ids) {
+    if (!ids) return '';
+    return ids.split(',').filter(Boolean).map(function(id) {
+        var u = allUsers.find(function(u) { return String(u.id) === id; });
+        return u ? u.realName : id;
+    }).join('、');
+}
 
+/* ===== 弹窗操作 ===== */
+function resetForm() {
+    document.querySelectorAll('#demandModal .form-group').forEach(function(g) { g.classList.remove('has-error'); });
+    msSelected = { product: [], test: [], dev: [] };
+    ['product', 'test', 'dev'].forEach(function(t) { renderMsTags(t); });
+}
 function showAddModal() {
+    resetForm();
     document.getElementById('demandModalTitle').textContent = '新增需求';
     document.getElementById('demandId').value = '';
     document.getElementById('formDemandName').value = '';
-    document.getElementById('formDemandType').value = '需求';
+    fillSelect('formDemandType', 'demand_type', '需求');
     document.getElementById('formProject').value = '';
-    document.getElementById('formPriority').value = '1';
-    document.getElementById('formDemandStatus').value = '0';
+    fillSelect('formPriority', 'priority', '1');
+    fillSelect('formDemandStatus', 'demand_status', '0');
     document.getElementById('formStartDate').value = '';
     document.getElementById('formEndDate').value = '';
     document.getElementById('formHours').value = '';
     document.getElementById('formDesc').value = '';
     document.getElementById('demandModal').classList.add('active');
 }
-
 function showEditModal(id) {
     api('/api/demand/' + id).then(function(res) {
         if (res.code !== 200 || !res.data) return;
         var d = res.data;
+        resetForm();
         document.getElementById('demandModalTitle').textContent = '编辑需求';
         document.getElementById('demandId').value = d.id;
         document.getElementById('formDemandName').value = d.demandName || '';
-        document.getElementById('formDemandType').value = d.demandType || '需求';
+        document.getElementById('formDemandType').value = d.demandType || '';
         document.getElementById('formProject').value = d.projectId || '';
         document.getElementById('formPriority').value = d.priority != null ? d.priority : 1;
         document.getElementById('formDemandStatus').value = d.status != null ? d.status : 0;
@@ -197,40 +376,61 @@ function showEditModal(id) {
         document.getElementById('formEndDate').value = d.endDate || '';
         document.getElementById('formHours').value = d.totalHours || '';
         document.getElementById('formDesc').value = d.description || '';
+        setMsSelected('product', d.productMembers);
+        setMsSelected('test', d.testMembers);
+        setMsSelected('dev', d.devMembers);
         document.getElementById('demandModal').classList.add('active');
     });
 }
-
-function closeModal() { document.getElementById('demandModal').classList.remove('active'); }
-
+function closeModal() {
+    document.getElementById('demandModal').classList.remove('active');
+    if (msDropdown) { msDropdown.remove(); msDropdown = null; }
+}
 function saveDemand() {
+    // 清除所有错误
+    document.querySelectorAll('#demandModal .form-group').forEach(function(g) { g.classList.remove('has-error'); });
+    var name = document.getElementById('formDemandName').value;
+    var type = document.getElementById('formDemandType').value;
+    var project = document.getElementById('formProject').value;
+    var priority = document.getElementById('formPriority').value;
+    var status = document.getElementById('formDemandStatus').value;
+    var startDate = document.getElementById('formStartDate').value;
+    var endDate = document.getElementById('formEndDate').value;
+    var hours = document.getElementById('formHours').value;
+    var valid = true;
+    if (!name) { document.getElementById('formDemandName').closest('.form-group').classList.add('has-error'); valid = false; }
+    if (!type) { document.getElementById('formDemandType').closest('.form-group').classList.add('has-error'); valid = false; }
+    if (!project) { document.getElementById('formProject').closest('.form-group').classList.add('has-error'); valid = false; }
+    if (priority === '' || priority === null) { document.getElementById('formPriority').closest('.form-group').classList.add('has-error'); valid = false; }
+    if (status === '' || status === null) { document.getElementById('formDemandStatus').closest('.form-group').classList.add('has-error'); valid = false; }
+    if (!startDate) { document.getElementById('formStartDate').closest('.form-group').classList.add('has-error'); valid = false; }
+    if (!endDate) { document.getElementById('formEndDate').closest('.form-group').classList.add('has-error'); valid = false; }
+    if (!hours) { document.getElementById('formHours').closest('.form-group').classList.add('has-error'); valid = false; }
+    if (!validateMs('product')) valid = false;
+    if (!validateMs('test')) valid = false;
+    if (!validateMs('dev')) valid = false;
+    if (!valid) return;
     var id = document.getElementById('demandId').value;
     var data = {
-        demandName: document.getElementById('formDemandName').value,
-        demandType: document.getElementById('formDemandType').value,
-        projectId: document.getElementById('formProject').value || null,
-        priority: parseInt(document.getElementById('formPriority').value),
-        status: parseInt(document.getElementById('formDemandStatus').value),
-        startDate: document.getElementById('formStartDate').value || null,
-        endDate: document.getElementById('formEndDate').value || null,
-        totalHours: parseFloat(document.getElementById('formHours').value) || 0,
-        description: document.getElementById('formDesc').value
+        demandName: name, demandType: type, projectId: parseInt(project),
+        priority: parseInt(priority), status: parseInt(status),
+        startDate: startDate, endDate: endDate,
+        totalHours: parseFloat(hours),
+        description: document.getElementById('formDesc').value,
+        productMembers: getMsValue('product'),
+        testMembers: getMsValue('test'),
+        devMembers: getMsValue('dev')
     };
-    if (!data.demandName) { alert('请输入需求名称'); return; }
-    if (!data.demandType) { alert('请选择需求类型'); return; }
-    var method = id ? 'PUT' : 'POST';
     if (id) data.id = parseInt(id);
-    api('/api/demand', method, data).then(function(res) {
+    api('/api/demand', id ? 'PUT' : 'POST', data).then(function(res) {
         if (res.code === 200) { closeModal(); loadDemands(); }
         else { alert(res.msg); }
     });
 }
-
 function deleteDemand(id) {
     if (!confirm('确定删除该需求？')) return;
     api('/api/demand/' + id, 'DELETE').then(function(res) {
-        if (res.code === 200) loadDemands();
-        else alert(res.msg);
+        if (res.code === 200) loadDemands(); else alert(res.msg);
     });
 }
 
@@ -241,6 +441,7 @@ function loadAndInit() {
         fillSelect('formPriority', 'priority', '1');
         fillSelect('formDemandStatus', 'demand_status', '0');
         loadProjects();
+        loadUsers();
         loadDemands();
     });
 }

@@ -78,6 +78,9 @@ public class DemandService extends ServiceImpl<DemandMapper, Demand> {
         vo.setStartDate(demand.getStartDate());
         vo.setEndDate(demand.getEndDate());
         vo.setTotalHours(demand.getTotalHours());
+        vo.setProductMembers(demand.getProductMembers());
+        vo.setTestMembers(demand.getTestMembers());
+        vo.setDevMembers(demand.getDevMembers());
         vo.setCreateTime(demand.getCreateTime());
         return vo;
     }
@@ -101,6 +104,9 @@ public class DemandService extends ServiceImpl<DemandMapper, Demand> {
             demand.setEndDate(LocalDate.parse(reqVO.getEndDate()));
         }
         demand.setTotalHours(reqVO.getTotalHours());
+        demand.setProductMembers(reqVO.getProductMembers());
+        demand.setTestMembers(reqVO.getTestMembers());
+        demand.setDevMembers(reqVO.getDevMembers());
         return demand;
     }
 }

@@ -8,6 +8,7 @@
     if (!token) { location.href = 'login.html'; return; }
 
     var menus = [
+        { href: 'dashboard.html',    icon: '🏠', label: '工作台' },
         { href: 'week-view.html',    icon: '📅', label: '周排期' },
         { href: 'demand-manage.html', icon: '📋', label: '需求管理' },
         { href: 'user-manage.html',  icon: '👥', label: '人员管理' },

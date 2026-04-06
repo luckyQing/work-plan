@@ -48,6 +48,15 @@ public class Demand {
     /** 预估总工时 */
     private BigDecimal totalHours;
 
+    /** 产品人员（逗号分隔的用户ID） */
+    private String productMembers;
+
+    /** 测试人员（逗号分隔的用户ID） */
+    private String testMembers;
+
+    /** 研发人员（逗号分隔的用户ID） */
+    private String devMembers;
+
     /** 创建人ID */
     @TableField(fill = FieldFill.INSERT)
     private Long createId;

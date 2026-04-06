@@ -4,17 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>需求管理 - 任务排期管理系统</title>
+    <link rel="stylesheet" href="css/layout.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
-        body { background-color: #f5f7fa; color: #333; }
-        .top-nav { background: #001529; padding: 0 24px; display: flex; align-items: center; height: 48px; }
-        .top-nav .logo { color: #fff; font-size: 16px; font-weight: 600; margin-right: 40px; }
-        .top-nav a { color: rgba(255,255,255,0.65); text-decoration: none; padding: 0 16px; line-height: 48px; font-size: 14px; transition: color 0.3s; }
-        .top-nav a:hover, .top-nav a.active { color: #fff; }
-        .top-nav .right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
-        .top-nav .right span { color: rgba(255,255,255,0.65); font-size: 14px; }
-        .top-nav .right .logout-btn { color: rgba(255,255,255,0.65); background: none; border: none; cursor: pointer; font-size: 14px; }
-        .top-nav .right .logout-btn:hover { color: #ff4d4f; }
         .page-content { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .page-header h3 { font-size: 20px; }
@@ -52,17 +43,8 @@
     </style>
 </head>
 <body>
-<div class="top-nav">
-    <div class="logo">任务排期管理</div>
-    <a href="week-view.html">周排期</a>
-    <a href="demand-manage.html" class="active">需求管理</a>
-    <a href="user-manage.html">人员管理</a>
-    <a href="config-manage.html">字典配置</a>
-    <div class="right">
-        <span id="navUser"></span>
-        <button class="logout-btn" onclick="doLogout()">退出</button>
-    </div>
-</div>
+<script src="js/layout.js"></script>
+<div class="main-content">
 <div class="page-content">
     <div class="page-header">
         <h3>需求管理</h3>
@@ -110,12 +92,12 @@
         </div>
     </div>
 </div>
+</div><!-- /main-content -->
 
 <script>
 var token = localStorage.getItem('token');
 var currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 if (!token) { location.href = 'login.html'; }
-document.getElementById('navUser').textContent = currentUser ? currentUser.realName : '';
 
 var dictData = {};
 var PRIORITY_STYLES = { '0': 'priority-low', '1': 'priority-mid', '2': 'priority-high' };
@@ -145,11 +127,6 @@ function api(url, method, body) {
         if (data.code === 401) { localStorage.removeItem('token'); localStorage.removeItem('currentUser'); location.href = 'login.html'; throw new Error('未登录'); }
         return data;
     });
-}
-function doLogout() {
-    api('/api/auth/logout', 'POST').catch(function(){});
-    localStorage.removeItem('token'); localStorage.removeItem('currentUser');
-    location.href = 'login.html';
 }
 
 function loadProjects() {

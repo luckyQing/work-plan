@@ -4,18 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>周排期视图 - 任务排期管理系统</title>
+    <link rel="stylesheet" href="css/layout.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
-        body { background-color: #f5f7fa; color: #333; }
-        .top-nav { background: #001529; padding: 0 24px; display: flex; align-items: center; height: 48px; }
-        .top-nav .logo { color: #fff; font-size: 16px; font-weight: 600; margin-right: 40px; }
-        .top-nav a { color: rgba(255,255,255,0.65); text-decoration: none; padding: 0 16px; line-height: 48px; font-size: 14px; transition: color 0.3s; }
-        .top-nav a:hover, .top-nav a.active { color: #fff; }
-        .top-nav .right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
-        .top-nav .right span { color: rgba(255,255,255,0.65); font-size: 14px; }
-        .top-nav .right .logout-btn { color: rgba(255,255,255,0.65); background: none; border: none; cursor: pointer; font-size: 14px; }
-        .top-nav .right .logout-btn:hover { color: #ff4d4f; }
-        .container { max-width: 96%; margin: 0 auto; padding: 20px 0; }
+        .container { max-width: 98%; margin: 0 auto; padding: 20px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 10px 0; border-bottom: 1px solid #eaeaea; }
         .controls { display: flex; gap: 10px; align-items: center; }
         .btn { padding: 6px 12px; background-color: #fff; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; font-size: 14px; }
@@ -102,17 +93,8 @@
     </style>
 </head>
 <body>
-<div class="top-nav">
-    <div class="logo">任务排期管理</div>
-    <a href="week-view.html" class="active">周排期</a>
-    <a href="demand-manage.html">需求管理</a>
-    <a href="user-manage.html">人员管理</a>
-    <a href="config-manage.html">字典配置</a>
-    <div class="right">
-        <span id="navUser"></span>
-        <button class="logout-btn" onclick="doLogout()">退出</button>
-    </div>
-</div>
+<script src="js/layout.js"></script>
+<div class="main-content">
 <div class="container">
     <div class="header">
         <div class="controls">
@@ -206,6 +188,7 @@
     <div class="popup-item" onclick="editTaskFromPopup()">✏️ 编辑</div>
     <div class="popup-item danger" onclick="deleteTaskFromPopup()">🗑️ 删除</div>
 </div>
+</div><!-- /main-content -->
 
 <script>
 var token = localStorage.getItem('token');
@@ -215,7 +198,6 @@ var weekStart = '';
 var scheduleData = [];
 var allExpanded = false;
 var WEEK_DAYS = ["周日","周一","周二","周三","周四","周五","周六"];
-document.getElementById('navUser').textContent = currentUser ? currentUser.realName : '';
 
 function api(url, method, body) {
     var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json' } };
@@ -225,11 +207,6 @@ function api(url, method, body) {
         if (data.code === 401) { localStorage.removeItem('token'); localStorage.removeItem('currentUser'); location.href = 'login.html'; throw new Error('未登录'); }
         return data;
     });
-}
-function doLogout() {
-    api('/api/auth/logout', 'POST').catch(function(){});
-    localStorage.removeItem('token'); localStorage.removeItem('currentUser');
-    location.href = 'login.html';
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function getWeekDates(startStr) {

@@ -41,6 +41,9 @@
         .task-card .today-logged { font-size: 13px; color: #1890ff; background: #e6f7ff; padding: 4px 10px; border-radius: 4px; }
         .task-card .log-btn { padding: 5px 14px; background: #1890ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
         .task-card .log-btn:hover { background: #40a9ff; }
+        .task-card .complete-btn { padding: 5px 14px; background: #52c41a; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .task-card .complete-btn:hover { background: #73d13d; }
+        .card-btns { display: flex; gap: 8px; }
         /* 完成水印 */
         .done-stamp {
             position: absolute; right: 12px; top: 12px;
@@ -197,7 +200,10 @@ function loadDashboard() {
                 '</div>' +
                 '<div class="card-footer">' +
                     '<span class="today-logged">今日已录入：' + todayH + '小时</span>' +
-                    '<button class="log-btn" onclick="showLogModal(' + t.taskId + ', \'' + t.taskName + '\')">录入工时</button>' +
+                    '<div class="card-btns">' +
+                        (!done ? '<button class="log-btn" onclick="showLogModal(' + t.taskId + ', \'' + t.taskName.replace(/'/g, "\\'") + '\')">录入工时</button>' : '') +
+                        (!done ? '<button class="complete-btn" onclick="completeTask(' + t.taskId + ')">完成</button>' : '') +
+                    '</div>' +
                 '</div>' +
                 (done ? '<div class="done-stamp">已完成</div>' : '');
             grid.appendChild(card);
@@ -255,6 +261,14 @@ function deleteLog(id) {
     api('/api/worklog/' + id, 'DELETE').then(function(res) {
         if (res.code === 200) { loadDashboard(); loadTodayLogs(); }
         else { alert(res.msg); }
+    });
+}
+
+function completeTask(taskId) {
+    if (!confirm('确定将此任务标记为已完成？')) return;
+    api('/api/task/' + taskId + '/complete', 'PUT').then(function(res) {
+        if (res.code === 200) { loadDashboard(); }
+        else { alert(res.msg || '操作失败'); }
     });
 }
 

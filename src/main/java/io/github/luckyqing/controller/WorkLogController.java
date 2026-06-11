@@ -1,6 +1,7 @@
 package io.github.luckyqing.controller;
 
 import io.github.luckyqing.common.R;
+import io.github.luckyqing.common.RoleConstants;
 import io.github.luckyqing.entity.WorkLog;
 import io.github.luckyqing.service.WorkLogService;
 import io.github.luckyqing.vo.worklog.DashboardTaskVO;
@@ -64,7 +65,7 @@ public class WorkLogController {
     public R<Void> delete(@PathVariable Long id, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         // 非管理员只能删除自己的工时记录
-        if (!permissionService.getUserRoles(userId).contains("ADMIN")) {
+        if (!permissionService.getUserRoles(userId).contains(RoleConstants.ADMIN)) {
             WorkLog log = workLogService.getById(id);
             if (log != null && !log.getUserId().equals(userId)) {
                 return R.fail("无权删除他人的工时记录");

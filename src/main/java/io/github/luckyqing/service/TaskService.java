@@ -86,6 +86,18 @@ public class TaskService extends ServiceImpl<TaskMapper, Task> {
     }
 
     /**
+     * 将任务标记为已完成（status=2）
+     *
+     * @param taskId 任务ID
+     */
+    public void completeTask(Long taskId) {
+        Task task = new Task();
+        task.setId(taskId);
+        task.setStatus(2);
+        updateById(task);
+    }
+
+    /**
      * Entity 转 RespVO
      */
     private TaskRespVO toRespVO(Task task) {

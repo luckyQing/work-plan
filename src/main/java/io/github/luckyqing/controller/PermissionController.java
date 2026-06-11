@@ -1,6 +1,7 @@
 package io.github.luckyqing.controller;
 
 import io.github.luckyqing.common.R;
+import io.github.luckyqing.common.RoleConstants;
 import io.github.luckyqing.entity.Permission;
 import io.github.luckyqing.service.PermissionService;
 import io.github.luckyqing.vo.permission.*;
@@ -45,28 +46,28 @@ public class PermissionController {
 
     /** 查询所有权限（管理员用） */
     @GetMapping("/list")
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<List<PermissionRespVO>> listAll() {
         return R.ok(permissionService.listAllPermissions());
     }
 
     /** 查询所有角色 */
     @GetMapping("/roles")
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<List<RoleRespVO>> listRoles() {
         return R.ok(permissionService.listAllRoles());
     }
 
     /** 查询角色拥有的权限ID */
     @GetMapping("/role/{roleId}/permissions")
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<List<Long>> getRolePermissions(@PathVariable Long roleId) {
         return R.ok(permissionService.getRolePermissionIds(roleId));
     }
 
     /** 保存角色权限 */
     @PostMapping("/role/permissions")
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<Void> saveRolePermissions(@RequestBody RolePermissionReqVO reqVO) {
         permissionService.saveRolePermissions(reqVO.getRoleId(), reqVO.getPermissionIds());
         return R.ok();
@@ -74,14 +75,14 @@ public class PermissionController {
 
     /** 查询用户角色ID */
     @GetMapping("/user/{userId}/roles")
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<List<Long>> getUserRoles(@PathVariable Long userId) {
         return R.ok(permissionService.getUserRoleIds(userId));
     }
 
     /** 保存用户角色 */
     @PostMapping("/user/roles")
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<Void> saveUserRoles(@RequestBody UserRoleReqVO reqVO) {
         permissionService.saveUserRoles(reqVO.getUserId(), reqVO.getRoleIds());
         return R.ok();
@@ -89,7 +90,7 @@ public class PermissionController {
 
     /** 清除用户权限缓存 */
     @DeleteMapping("/cache/{userId}")
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<Void> clearCache(@PathVariable Long userId) {
         permissionService.clearUserCache(userId);
         return R.ok();
@@ -97,7 +98,7 @@ public class PermissionController {
 
     /** 新增角色 */
     @PostMapping("/roles")
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<Void> addRole(@Valid @RequestBody RoleSaveReqVO reqVO) {
         permissionService.addRole(reqVO);
         return R.ok();
@@ -105,7 +106,7 @@ public class PermissionController {
 
     /** 修改角色 */
     @PutMapping("/roles")
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<Void> updateRole(@Valid @RequestBody RoleSaveReqVO reqVO) {
         permissionService.updateRole(reqVO);
         return R.ok();
@@ -113,7 +114,7 @@ public class PermissionController {
 
     /** 删除角色 */
     @DeleteMapping("/roles/{roleId}")
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<Void> deleteRole(@PathVariable Long roleId) {
         permissionService.deleteRole(roleId);
         return R.ok();
@@ -121,7 +122,7 @@ public class PermissionController {
 
     /** 新增权限 */
     @PostMapping
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<Void> addPermission(@Valid @RequestBody PermissionSaveReqVO reqVO) {
         permissionService.addPermission(reqVO);
         return R.ok();
@@ -129,7 +130,7 @@ public class PermissionController {
 
     /** 修改权限 */
     @PutMapping
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<Void> updatePermission(@Valid @RequestBody PermissionSaveReqVO reqVO) {
         permissionService.updatePermission(reqVO);
         return R.ok();
@@ -137,7 +138,7 @@ public class PermissionController {
 
     /** 删除权限 */
     @DeleteMapping("/{permId}")
-    @RequiresRoles("ADMIN")
+    @RequiresRoles(RoleConstants.ADMIN)
     public R<Void> deletePermission(@PathVariable Long permId) {
         permissionService.deletePermission(permId);
         return R.ok();

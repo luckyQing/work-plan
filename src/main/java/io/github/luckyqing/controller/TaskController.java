@@ -1,6 +1,7 @@
 package io.github.luckyqing.controller;
 
 import io.github.luckyqing.common.R;
+import io.github.luckyqing.common.RoleConstants;
 import io.github.luckyqing.entity.Task;
 import io.github.luckyqing.service.PermissionService;
 import io.github.luckyqing.vo.task.TaskListReqVO;
@@ -52,6 +53,12 @@ public class TaskController {
         if (check != null) {
             return check;
         }
+        // 非管理员不允许修改负责人（防止将任务转给他人）
+        if (!permissionService.getUserRoles(userId).contains(RoleConstants.ADMIN)) {
+            reqVO.setAssigneeId(userId);
+        }
+        // 状态只能通过「完成」按钮操作，编辑接口不允许修改
+        reqVO.setStatus(null);
         taskService.updateTask(reqVO);
         return R.ok();
     }
@@ -69,16 +76,31 @@ public class TaskController {
     }
 
     /**
+     * 标记任务为已完成
+     * 非管理员只能完成自己的任务
+     */
+    @PutMapping("/{id}/complete")
+    public R<Void> complete(@PathVariable Long id, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        R<Void> check = checkOwnership(id, userId);
+        if (check != null) {
+            return check;
+        }
+        taskService.completeTask(id);
+        return R.ok();
+    }
+
+    /**
      * 校验任务归属：非管理员只能操作自己的任务
      *
      * @return null 表示通过，否则返回错误
      */
     private R<Void> checkOwnership(Long taskId, Long userId) {
         if (taskId == null) {
-            return null;
+            return R.fail("任务ID不能为空");
         }
         // 管理员不限制
-        if (permissionService.getUserRoles(userId).contains("ADMIN")) {
+        if (permissionService.getUserRoles(userId).contains(RoleConstants.ADMIN)) {
             return null;
         }
         Task task = taskService.getById(taskId);

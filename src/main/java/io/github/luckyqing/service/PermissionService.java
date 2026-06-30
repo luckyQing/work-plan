@@ -1,14 +1,14 @@
 package io.github.luckyqing.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import io.github.luckyqing.entity.Permission;
-import io.github.luckyqing.entity.Role;
-import io.github.luckyqing.entity.RolePermission;
-import io.github.luckyqing.entity.UserRole;
-import io.github.luckyqing.mapper.PermissionMapper;
-import io.github.luckyqing.mapper.RoleMapper;
-import io.github.luckyqing.mapper.RolePermissionMapper;
-import io.github.luckyqing.mapper.UserRoleMapper;
+import io.github.luckyqing.entity.PermissionEntity;
+import io.github.luckyqing.entity.RoleEntity;
+import io.github.luckyqing.entity.RolePermissionEntity;
+import io.github.luckyqing.entity.UserRoleEntity;
+import io.github.luckyqing.resposity.PermissionResposity;
+import io.github.luckyqing.resposity.RoleResposity;
+import io.github.luckyqing.resposity.RolePermissionResposity;
+import io.github.luckyqing.resposity.UserRoleResposity;
 import io.github.luckyqing.vo.permission.PermissionRespVO;
 import io.github.luckyqing.vo.permission.PermissionSaveReqVO;
 import io.github.luckyqing.vo.permission.RoleRespVO;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  * 权限信息缓存到 Redis，key 格式：
  *   perm:roles:{userId}  -> Set<String> 角色码
  *   perm:codes:{userId}  -> Set<String> 权限码
- *   perm:menus:{userId}  -> List<Permission> 菜单权限
+ *   perm:menus:{userId}  -> List<PermissionEntity> 菜单权限
  */
 @Service
 public class PermissionService {
@@ -36,13 +36,13 @@ public class PermissionService {
     private static final long CACHE_TTL = 24 * 60; // 24小时（分钟）
 
     @Autowired
-    private PermissionMapper permissionMapper;
+    private PermissionResposity permissionResposity;
     @Autowired
-    private RoleMapper roleMapper;
+    private RoleResposity roleResposity;
     @Autowired
-    private RolePermissionMapper rolePermissionMapper;
+    private RolePermissionResposity rolePermissionResposity;
     @Autowired
-    private UserRoleMapper userRoleMapper;
+    private UserRoleResposity userRoleResposity;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
@@ -52,7 +52,7 @@ public class PermissionService {
         String key = KEY_ROLES + userId;
         Object cached = redisTemplate.opsForValue().get(key);
         if (cached instanceof Set) return (Set<String>) cached;
-        List<String> roles = permissionMapper.selectRoleCodesByUserId(userId);
+        List<String> roles = permissionResposity.selectRoleCodesByUserId(userId);
         Set<String> roleSet = new HashSet<>(roles);
         redisTemplate.opsForValue().set(key, roleSet, CACHE_TTL, TimeUnit.MINUTES);
         return roleSet;
@@ -64,18 +64,18 @@ public class PermissionService {
         String key = KEY_CODES + userId;
         Object cached = redisTemplate.opsForValue().get(key);
         if (cached instanceof Set) return (Set<String>) cached;
-        List<Permission> perms = permissionMapper.selectByUserId(userId);
-        Set<String> codes = perms.stream().map(Permission::getPermCode).collect(Collectors.toSet());
+        List<PermissionEntity> perms = permissionResposity.selectByUserId(userId);
+        Set<String> codes = perms.stream().map(PermissionEntity::getPermCode).collect(Collectors.toSet());
         redisTemplate.opsForValue().set(key, codes, CACHE_TTL, TimeUnit.MINUTES);
         return codes;
     }
 
     /** 获取用户菜单权限列表 */
-    public List<Permission> getUserMenus(Long userId) {
-        List<Permission> perms = permissionMapper.selectByUserId(userId);
+    public List<PermissionEntity> getUserMenus(Long userId) {
+        List<PermissionEntity> perms = permissionResposity.selectByUserId(userId);
         return perms.stream()
                 .filter(p -> "menu".equals(p.getPermType()))
-                .sorted(Comparator.comparingInt(Permission::getSortOrder))
+                .sorted(Comparator.comparingInt(PermissionEntity::getSortOrder))
                 .collect(Collectors.toList());
     }
 
@@ -88,65 +88,65 @@ public class PermissionService {
 
     /** 查询所有权限 */
     public List<PermissionRespVO> listAllPermissions() {
-        return permissionMapper.selectList(new LambdaQueryWrapper<Permission>()
-                .eq(Permission::getDeleted, 0)
-                .orderByAsc(Permission::getSortOrder))
+        return permissionResposity.list(new LambdaQueryWrapper<PermissionEntity>()
+                .eq(PermissionEntity::getDeleted, 0)
+                .orderByAsc(PermissionEntity::getSortOrder))
                 .stream().map(this::toPermVO).collect(Collectors.toList());
     }
 
     /** 查询所有角色 */
     public List<RoleRespVO> listAllRoles() {
-        return roleMapper.selectList(new LambdaQueryWrapper<Role>()
-                .eq(Role::getDeleted, 0))
+        return roleResposity.list(new LambdaQueryWrapper<RoleEntity>()
+                .eq(RoleEntity::getDeleted, 0))
                 .stream().map(this::toRoleVO).collect(Collectors.toList());
     }
 
     /** 查询角色拥有的权限ID列表 */
     public List<Long> getRolePermissionIds(Long roleId) {
-        return rolePermissionMapper.selectList(
-                new LambdaQueryWrapper<RolePermission>().eq(RolePermission::getRoleId, roleId))
-                .stream().map(RolePermission::getPermissionId).collect(Collectors.toList());
+        return rolePermissionResposity.list(
+                new LambdaQueryWrapper<RolePermissionEntity>().eq(RolePermissionEntity::getRoleId, roleId))
+                .stream().map(RolePermissionEntity::getPermissionId).collect(Collectors.toList());
     }
 
     /** 保存角色权限（先删后插） */
     public void saveRolePermissions(Long roleId, List<Long> permissionIds) {
-        rolePermissionMapper.delete(new LambdaQueryWrapper<RolePermission>()
-                .eq(RolePermission::getRoleId, roleId));
+        rolePermissionResposity.remove(new LambdaQueryWrapper<RolePermissionEntity>()
+                .eq(RolePermissionEntity::getRoleId, roleId));
         if (permissionIds != null && !permissionIds.isEmpty()) {
             permissionIds.forEach(pid -> {
-                RolePermission rp = new RolePermission();
+                RolePermissionEntity rp = new RolePermissionEntity();
                 rp.setRoleId(roleId);
                 rp.setPermissionId(pid);
-                rolePermissionMapper.insert(rp);
+                rolePermissionResposity.save(rp);
             });
         }
         // 清除该角色下所有用户的缓存
-        userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>().eq(UserRole::getRoleId, roleId))
+        userRoleResposity.list(new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getRoleId, roleId))
                 .forEach(ur -> clearUserCache(ur.getUserId()));
     }
 
     /** 查询用户角色ID列表 */
     public List<Long> getUserRoleIds(Long userId) {
-        return userRoleMapper.selectList(
-                new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, userId))
-                .stream().map(UserRole::getRoleId).collect(Collectors.toList());
+        return userRoleResposity.list(
+                new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getUserId, userId))
+                .stream().map(UserRoleEntity::getRoleId).collect(Collectors.toList());
     }
 
     /** 保存用户角色（先删后插） */
     public void saveUserRoles(Long userId, List<Long> roleIds) {
-        userRoleMapper.delete(new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, userId));
+        userRoleResposity.remove(new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getUserId, userId));
         if (roleIds != null && !roleIds.isEmpty()) {
             roleIds.forEach(rid -> {
-                UserRole ur = new UserRole();
+                UserRoleEntity ur = new UserRoleEntity();
                 ur.setUserId(userId);
                 ur.setRoleId(rid);
-                userRoleMapper.insert(ur);
+                userRoleResposity.save(ur);
             });
         }
         clearUserCache(userId);
     }
 
-    private PermissionRespVO toPermVO(Permission p) {
+    private PermissionRespVO toPermVO(PermissionEntity p) {
         PermissionRespVO vo = new PermissionRespVO();
         vo.setId(p.getId());
         vo.setPermCode(p.getPermCode());
@@ -159,7 +159,7 @@ public class PermissionService {
         return vo;
     }
 
-    private RoleRespVO toRoleVO(Role r) {
+    private RoleRespVO toRoleVO(RoleEntity r) {
         RoleRespVO vo = new RoleRespVO();
         vo.setId(r.getId());
         vo.setRoleCode(r.getRoleCode());
@@ -170,60 +170,61 @@ public class PermissionService {
     }
 
     /** 新增角色 */
-    public void addRole(io.github.luckyqing.vo.permission.RoleSaveReqVO reqVO) {        Role role = new Role();
+    public void addRole(io.github.luckyqing.vo.permission.RoleSaveReqVO reqVO) {
+        RoleEntity role = new RoleEntity();
         role.setRoleCode(reqVO.getRoleCode());
         role.setRoleName(reqVO.getRoleName());
         role.setDescription(reqVO.getDescription());
         role.setStatus(reqVO.getStatus() != null ? reqVO.getStatus() : 1);
-        roleMapper.insert(role);
+        roleResposity.save(role);
     }
 
     /** 修改角色 */
     public void updateRole(io.github.luckyqing.vo.permission.RoleSaveReqVO reqVO) {
-        Role role = new Role();
+        RoleEntity role = new RoleEntity();
         role.setId(reqVO.getId());
         role.setRoleCode(reqVO.getRoleCode());
         role.setRoleName(reqVO.getRoleName());
         role.setDescription(reqVO.getDescription());
         role.setStatus(reqVO.getStatus());
-        roleMapper.updateById(role);
+        roleResposity.updateById(role);
         // 清除该角色下所有用户的缓存
-        userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>().eq(UserRole::getRoleId, reqVO.getId()))
+        userRoleResposity.list(new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getRoleId, reqVO.getId()))
                 .forEach(ur -> clearUserCache(ur.getUserId()));
     }
 
     /** 删除角色（逻辑删除） */
     public void deleteRole(Long roleId) {
-        roleMapper.deleteById(roleId);
-        userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>().eq(UserRole::getRoleId, roleId))
+        roleResposity.removeById(roleId);
+        userRoleResposity.list(new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getRoleId, roleId))
                 .forEach(ur -> clearUserCache(ur.getUserId()));
     }
 
     /** 新增权限 */
     public void addPermission(PermissionSaveReqVO reqVO) {
-        Permission p = toEntity(reqVO);
-        permissionMapper.insert(p);
+        PermissionEntity p = toEntity(reqVO);
+        permissionResposity.save(p);
     }
 
     /** 修改权限 */
     public void updatePermission(PermissionSaveReqVO reqVO) {
-        Permission p = toEntity(reqVO);
-        permissionMapper.updateById(p);
+        PermissionEntity p = toEntity(reqVO);
+        permissionResposity.updateById(p);
         // 权限变更后清除所有用户缓存（简单处理）
         redisTemplate.keys("perm:*").forEach(k -> redisTemplate.delete(k));
     }
 
     /** 删除权限（逻辑删除） */
     public void deletePermission(Long permId) {
-        permissionMapper.deleteById(permId);
+        permissionResposity.removeById(permId);
         // 同步删除角色-权限关联
-        rolePermissionMapper.delete(new LambdaQueryWrapper<RolePermission>()
-                .eq(RolePermission::getPermissionId, permId));
+        rolePermissionResposity.remove(new LambdaQueryWrapper<RolePermissionEntity>()
+                .eq(RolePermissionEntity::getPermissionId, permId));
         redisTemplate.keys("perm:*").forEach(k -> redisTemplate.delete(k));
     }
 
-    private Permission toEntity(PermissionSaveReqVO reqVO) {
-        Permission p = new Permission();
+    private PermissionEntity toEntity(PermissionSaveReqVO reqVO) {
+        PermissionEntity p = new PermissionEntity();
         p.setId(reqVO.getId());
         p.setPermCode(reqVO.getPermCode());
         p.setPermName(reqVO.getPermName());

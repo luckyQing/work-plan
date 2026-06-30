@@ -2,12 +2,12 @@ package io.github.luckyqing.controller;
 
 import io.github.luckyqing.common.R;
 import io.github.luckyqing.common.RoleConstants;
-import io.github.luckyqing.entity.Task;
+import io.github.luckyqing.entity.TaskEntity;
 import io.github.luckyqing.service.PermissionService;
 import io.github.luckyqing.vo.task.TaskListReqVO;
 import io.github.luckyqing.vo.task.TaskRespVO;
 import io.github.luckyqing.vo.task.TaskSaveReqVO;
-import io.github.luckyqing.service.TaskService;
+import io.github.luckyqing.resposity.TaskResposity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,7 +23,7 @@ import java.util.List;
 public class TaskController {
 
     @Autowired
-    private TaskService taskService;
+    private TaskResposity taskService;
 
     @Autowired
     private PermissionService permissionService;
@@ -103,7 +103,7 @@ public class TaskController {
         if (permissionService.getUserRoles(userId).contains(RoleConstants.ADMIN)) {
             return null;
         }
-        Task task = taskService.getById(taskId);
+        TaskEntity task = taskService.getById(taskId);
         if (task == null) {
             return R.fail("任务不存在");
         }

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @TableName("t_work_log")
-public class WorkLog {
+public class WorkLogEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;

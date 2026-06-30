@@ -5,7 +5,7 @@ import io.github.luckyqing.vo.user.ChangePasswordReqVO;
 import io.github.luckyqing.vo.user.UserListReqVO;
 import io.github.luckyqing.vo.user.UserRespVO;
 import io.github.luckyqing.vo.user.UserSaveReqVO;
-import io.github.luckyqing.service.UserService;
+import io.github.luckyqing.resposity.UserResposity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
@@ -21,7 +21,7 @@ import java.util.List;
 public class SysUserController {
 
     @Autowired
-    private UserService userService;
+    private UserResposity userService;
 
     /**
      * 查询用户列表

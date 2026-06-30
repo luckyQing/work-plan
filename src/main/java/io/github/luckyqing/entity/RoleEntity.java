@@ -4,18 +4,15 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 
-/** 权限实体 */
+/** 角色实体 */
 @Data
-@TableName("t_permission")
-public class Permission {
+@TableName("t_role")
+public class RoleEntity {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private String permCode;
-    private String permName;
-    private String permType;
-    private String permPath;
-    private Long parentId;
-    private Integer sortOrder;
+    private String roleCode;
+    private String roleName;
+    private String description;
     private Integer status;
     @TableField(fill = FieldFill.INSERT)
     private Long createId;

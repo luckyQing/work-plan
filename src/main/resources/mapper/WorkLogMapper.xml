@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="io.github.luckyqing.mapper.WorkLogMapper">
 
-    <resultMap id="workLogMap" type="io.github.luckyqing.entity.WorkLog">
+    <resultMap id="workLogMap" type="io.github.luckyqing.entity.WorkLogEntity">
         <id column="id" property="id"/>
         <result column="task_id" property="taskId"/>
         <result column="user_id" property="userId"/>

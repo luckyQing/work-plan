@@ -3,7 +3,7 @@ package io.github.luckyqing.controller;
 import io.github.luckyqing.common.R;
 import io.github.luckyqing.vo.project.ProjectRespVO;
 import io.github.luckyqing.vo.project.ProjectSaveReqVO;
-import io.github.luckyqing.service.ProjectService;
+import io.github.luckyqing.resposity.ProjectResposity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
@@ -18,7 +18,7 @@ import java.util.List;
 public class ProjectController {
 
     @Autowired
-    private ProjectService projectService;
+    private ProjectResposity projectService;
 
     /**
      * 查询所有项目

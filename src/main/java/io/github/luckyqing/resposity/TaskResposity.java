@@ -1,7 +1,7 @@
-package io.github.luckyqing.service;
+package io.github.luckyqing.resposity;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import io.github.luckyqing.entity.Task;
+import io.github.luckyqing.entity.TaskEntity;
 import io.github.luckyqing.mapper.TaskMapper;
 import io.github.luckyqing.vo.task.TaskListReqVO;
 import io.github.luckyqing.vo.task.TaskRespVO;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * 提供任务的增删改查及按日期范围查询功能
  */
 @Service
-public class TaskService extends ServiceImpl<TaskMapper, Task> {
+public class TaskResposity extends ServiceImpl<TaskMapper, TaskEntity> {
 
     /**
      * 查询任务列表
@@ -27,7 +27,7 @@ public class TaskService extends ServiceImpl<TaskMapper, Task> {
      * @return 任务RespVO列表
      */
     public List<TaskRespVO> listTasks(TaskListReqVO reqVO) {
-        List<Task> tasks;
+        List<TaskEntity> tasks;
         if (reqVO.getAssigneeId() != null && reqVO.getStartDate() != null && reqVO.getEndDate() != null) {
             tasks = baseMapper.selectByAssigneeAndDateRange(
                     reqVO.getAssigneeId(), reqVO.getStartDate(), reqVO.getEndDate());
@@ -44,7 +44,7 @@ public class TaskService extends ServiceImpl<TaskMapper, Task> {
      * @return 任务RespVO
      */
     public TaskRespVO getTaskById(Long id) {
-        Task task = getById(id);
+        TaskEntity task = getById(id);
         return task != null ? toRespVO(task) : null;
     }
 
@@ -55,7 +55,7 @@ public class TaskService extends ServiceImpl<TaskMapper, Task> {
      * @param endDate   结束日期
      * @return 任务Entity列表
      */
-    public List<Task> getByDateRange(String startDate, String endDate) {
+    public List<TaskEntity> getByDateRange(String startDate, String endDate) {
         return baseMapper.selectByDateRange(startDate, endDate);
     }
 
@@ -67,7 +67,7 @@ public class TaskService extends ServiceImpl<TaskMapper, Task> {
      * @param loginUserId 当前登录用户ID
      */
     public void addTask(TaskSaveReqVO reqVO, Long loginUserId) {
-        Task task = toEntity(reqVO);
+        TaskEntity task = toEntity(reqVO);
         // 未指定负责人时，默认为当前登录用户
         if (task.getAssigneeId() == null) {
             task.setAssigneeId(loginUserId);
@@ -81,7 +81,7 @@ public class TaskService extends ServiceImpl<TaskMapper, Task> {
      * @param reqVO 任务信息
      */
     public void updateTask(TaskSaveReqVO reqVO) {
-        Task task = toEntity(reqVO);
+        TaskEntity task = toEntity(reqVO);
         updateById(task);
     }
 
@@ -91,7 +91,7 @@ public class TaskService extends ServiceImpl<TaskMapper, Task> {
      * @param taskId 任务ID
      */
     public void completeTask(Long taskId) {
-        Task task = new Task();
+        TaskEntity task = new TaskEntity();
         task.setId(taskId);
         task.setStatus(2);
         updateById(task);
@@ -100,7 +100,7 @@ public class TaskService extends ServiceImpl<TaskMapper, Task> {
     /**
      * Entity 转 RespVO
      */
-    private TaskRespVO toRespVO(Task task) {
+    private TaskRespVO toRespVO(TaskEntity task) {
         TaskRespVO vo = new TaskRespVO();
         vo.setId(task.getId());
         vo.setTaskName(task.getTaskName());
@@ -121,8 +121,8 @@ public class TaskService extends ServiceImpl<TaskMapper, Task> {
     /**
      * ReqVO 转 Entity
      */
-    private Task toEntity(TaskSaveReqVO reqVO) {
-        Task task = new Task();
+    private TaskEntity toEntity(TaskSaveReqVO reqVO) {
+        TaskEntity task = new TaskEntity();
         task.setId(reqVO.getId());
         task.setTaskName(reqVO.getTaskName());
         task.setTaskType(reqVO.getTaskType());

@@ -1,10 +1,10 @@
-package io.github.luckyqing.service;
+package io.github.luckyqing.resposity;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.github.luckyqing.common.R;
-import io.github.luckyqing.entity.Demand;
-import io.github.luckyqing.entity.Task;
+import io.github.luckyqing.entity.DemandEntity;
+import io.github.luckyqing.entity.TaskEntity;
 import io.github.luckyqing.mapper.DemandMapper;
 import io.github.luckyqing.vo.demand.DemandRespVO;
 import io.github.luckyqing.vo.demand.DemandSaveReqVO;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  * 提供需求的增删改查功能
  */
 @Service
-public class DemandService extends ServiceImpl<DemandMapper, Demand> {
+public class DemandResposity extends ServiceImpl<DemandMapper, DemandEntity> {
 
     /**
      * 查询所有需求（含项目名称、创建人姓名）
@@ -38,7 +38,7 @@ public class DemandService extends ServiceImpl<DemandMapper, Demand> {
      * @return 需求RespVO
      */
     public DemandRespVO getDemandById(Long id) {
-        Demand demand = getById(id);
+        DemandEntity demand = getById(id);
         return demand != null ? toRespVO(demand) : null;
     }
 
@@ -49,7 +49,7 @@ public class DemandService extends ServiceImpl<DemandMapper, Demand> {
      * @param creatorId 创建人ID（当前登录用户）
      */
     public void addDemand(DemandSaveReqVO reqVO, Long creatorId) {
-        Demand demand = toEntity(reqVO);
+        DemandEntity demand = toEntity(reqVO);
         demand.setCreatorId(creatorId);
         save(demand);
     }
@@ -60,14 +60,14 @@ public class DemandService extends ServiceImpl<DemandMapper, Demand> {
      * @param reqVO 需求信息
      */
     public void updateDemand(DemandSaveReqVO reqVO) {
-        Demand demand = toEntity(reqVO);
+        DemandEntity demand = toEntity(reqVO);
         updateById(demand);
     }
 
     /**
      * Entity 转 RespVO
      */
-    private DemandRespVO toRespVO(Demand demand) {
+    private DemandRespVO toRespVO(DemandEntity demand) {
         DemandRespVO vo = new DemandRespVO();
         vo.setId(demand.getId());
         vo.setDemandName(demand.getDemandName());
@@ -92,8 +92,8 @@ public class DemandService extends ServiceImpl<DemandMapper, Demand> {
     /**
      * ReqVO 转 Entity
      */
-    private Demand toEntity(DemandSaveReqVO reqVO) {
-        Demand demand = new Demand();
+    private DemandEntity toEntity(DemandSaveReqVO reqVO) {
+        DemandEntity demand = new DemandEntity();
         demand.setId(reqVO.getId());
         demand.setDemandName(reqVO.getDemandName());
         demand.setDemandType(reqVO.getDemandType());
@@ -115,7 +115,7 @@ public class DemandService extends ServiceImpl<DemandMapper, Demand> {
     }
 
     @Autowired
-    private TaskService taskService;
+    private TaskResposity taskService;
 
     /** 需求状态值常量（与字典 demand_status 的 config_value 对应） */
     private static final int STATUS_TODO = 10;
@@ -124,12 +124,12 @@ public class DemandService extends ServiceImpl<DemandMapper, Demand> {
 
     /** 开始需求 */
     public R<Void> startDemand(Long id) {
-        Demand demand = getById(id);
+        DemandEntity demand = getById(id);
         if (demand == null) return R.fail("需求不存在");
         if (demand.getStatus() != null && demand.getStatus() != STATUS_TODO) {
             return R.fail("只有待开始的需求才能开始");
         }
-        Demand update = new Demand();
+        DemandEntity update = new DemandEntity();
         update.setId(id);
         update.setStatus(STATUS_DOING);
         updateById(update);
@@ -138,19 +138,19 @@ public class DemandService extends ServiceImpl<DemandMapper, Demand> {
 
     /** 完成需求（需所有子任务已完成） */
     public R<Void> completeDemand(Long id) {
-        Demand demand = getById(id);
+        DemandEntity demand = getById(id);
         if (demand == null) return R.fail("需求不存在");
         if (demand.getStatus() == null || demand.getStatus() != STATUS_DOING) {
             return R.fail("只有进行中的需求才能完成");
         }
         // 检查该需求下是否有未完成的任务
-        long unfinished = taskService.count(new LambdaQueryWrapper<Task>()
-                .eq(Task::getDemandId, id)
-                .ne(Task::getStatus, 2)); // status=2 表示已完成
+        long unfinished = taskService.count(new LambdaQueryWrapper<TaskEntity>()
+                .eq(TaskEntity::getDemandId, id)
+                .ne(TaskEntity::getStatus, 2)); // status=2 表示已完成
         if (unfinished > 0) {
             return R.fail("该需求下还有 " + unfinished + " 个未完成的任务，无法完成");
         }
-        Demand update = new Demand();
+        DemandEntity update = new DemandEntity();
         update.setId(id);
         update.setStatus(STATUS_DONE);
         updateById(update);
@@ -159,9 +159,9 @@ public class DemandService extends ServiceImpl<DemandMapper, Demand> {
 
     /** 查询进行中的需求（周排期录入任务用） */
     public List<DemandRespVO> listActiveDemands() {
-        List<Demand> list = list(new LambdaQueryWrapper<Demand>()
-                .eq(Demand::getStatus, STATUS_DOING)
-                .orderByDesc(Demand::getCreateTime));
+        List<DemandEntity> list = list(new LambdaQueryWrapper<DemandEntity>()
+                .eq(DemandEntity::getStatus, STATUS_DOING)
+                .orderByDesc(DemandEntity::getCreateTime));
         return list.stream().map(this::toRespVO).collect(Collectors.toList());
     }
 }

@@ -1,10 +1,10 @@
-package io.github.luckyqing.service;
+package io.github.luckyqing.resposity;
 
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.github.luckyqing.common.R;
-import io.github.luckyqing.entity.User;
+import io.github.luckyqing.entity.UserEntity;
 import io.github.luckyqing.mapper.UserMapper;
 import io.github.luckyqing.vo.user.UserListReqVO;
 import io.github.luckyqing.vo.user.UserRespVO;
@@ -19,32 +19,32 @@ import java.util.stream.Collectors;
  * 用户管理服务
  */
 @Service
-public class UserService extends ServiceImpl<UserMapper, User> {
+public class UserResposity extends ServiceImpl<UserMapper, UserEntity> {
 
     public List<UserRespVO> listUsers(UserListReqVO reqVO) {
-        LambdaQueryWrapper<User> qw = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<UserEntity> qw = new LambdaQueryWrapper<>();
         if (reqVO.getDept() != null && !reqVO.getDept().isEmpty()) {
-            qw.eq(User::getDept, reqVO.getDept());
+            qw.eq(UserEntity::getDept, reqVO.getDept());
         }
         return list(qw).stream().map(this::toRespVO).collect(Collectors.toList());
     }
 
     public UserRespVO getUserById(Long id) {
-        User user = getById(id);
+        UserEntity user = getById(id);
         return user != null ? toRespVO(user) : null;
     }
 
     public R<Void> addUser(UserSaveReqVO reqVO) {
-        User exist = getOne(new LambdaQueryWrapper<User>().eq(User::getUsername, reqVO.getUsername()));
+        UserEntity exist = getOne(new LambdaQueryWrapper<UserEntity>().eq(UserEntity::getUsername, reqVO.getUsername()));
         if (exist != null) return R.fail("用户名已存在");
-        User user = toEntity(reqVO);
+        UserEntity user = toEntity(reqVO);
         user.setPassword(DigestUtil.md5Hex(reqVO.getPassword()));
         save(user);
         return R.ok();
     }
 
     public R<Void> updateUser(UserSaveReqVO reqVO) {
-        User user = toEntity(reqVO);
+        UserEntity user = toEntity(reqVO);
         if (reqVO.getPassword() != null && !reqVO.getPassword().isEmpty()) {
             user.setPassword(DigestUtil.md5Hex(reqVO.getPassword()));
         } else {
@@ -55,9 +55,9 @@ public class UserService extends ServiceImpl<UserMapper, User> {
     }
 
     /** 按部门查询用户（供排期服务调用） */
-    public List<User> listByDept(String dept) {
-        return list(new LambdaQueryWrapper<User>()
-                .eq(dept != null && !dept.isEmpty(), User::getDept, dept));
+    public List<UserEntity> listByDept(String dept) {
+        return list(new LambdaQueryWrapper<UserEntity>()
+                .eq(dept != null && !dept.isEmpty(), UserEntity::getDept, dept));
     }
 
     /**
@@ -67,19 +67,19 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         if (!reqVO.getNewPassword().equals(reqVO.getConfirmPassword())) {
             return R.fail("两次输入的新密码不一致");
         }
-        User user = getById(userId);
+        UserEntity user = getById(userId);
         if (user == null) return R.fail("用户不存在");
         if (!DigestUtil.md5Hex(reqVO.getOldPassword()).equals(user.getPassword())) {
             return R.fail("原密码错误");
         }
-        User update = new User();
+        UserEntity update = new UserEntity();
         update.setId(userId);
         update.setPassword(DigestUtil.md5Hex(reqVO.getNewPassword()));
         updateById(update);
         return R.ok();
     }
 
-    private UserRespVO toRespVO(User user) {
+    private UserRespVO toRespVO(UserEntity user) {
         UserRespVO vo = new UserRespVO();
         vo.setId(user.getId());
         vo.setUsername(user.getUsername());
@@ -91,8 +91,8 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         return vo;
     }
 
-    private User toEntity(UserSaveReqVO reqVO) {
-        User user = new User();
+    private UserEntity toEntity(UserSaveReqVO reqVO) {
+        UserEntity user = new UserEntity();
         user.setId(reqVO.getId());
         user.setUsername(reqVO.getUsername());
         user.setRealName(reqVO.getRealName());

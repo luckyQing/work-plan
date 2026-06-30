@@ -3,7 +3,7 @@ package io.github.luckyqing.controller;
 import io.github.luckyqing.common.R;
 import io.github.luckyqing.vo.demand.DemandRespVO;
 import io.github.luckyqing.vo.demand.DemandSaveReqVO;
-import io.github.luckyqing.service.DemandService;
+import io.github.luckyqing.resposity.DemandResposity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
@@ -19,7 +19,7 @@ import java.util.List;
 public class DemandController {
 
     @Autowired
-    private DemandService demandService;
+    private DemandResposity demandService;
 
     /**
      * 查询需求列表（含项目名称、创建人姓名）

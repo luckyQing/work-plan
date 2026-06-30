@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @TableName("t_task")
-public class Task {
+public class TaskEntity {
 
     /** 主键ID */
     @TableId(type = IdType.AUTO)

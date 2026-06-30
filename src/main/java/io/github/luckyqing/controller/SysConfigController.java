@@ -3,7 +3,7 @@ package io.github.luckyqing.controller;
 import io.github.luckyqing.common.R;
 import io.github.luckyqing.vo.config.ConfigRespVO;
 import io.github.luckyqing.vo.config.ConfigSaveReqVO;
-import io.github.luckyqing.service.DictService;
+import io.github.luckyqing.resposity.DictResposity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
@@ -19,7 +19,7 @@ import java.util.Map;
 public class SysConfigController {
 
     @Autowired
-    private DictService configService;
+    private DictResposity configService;
 
     /**
      * 按类别查询配置项（按排序号升序）

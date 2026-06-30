@@ -2,8 +2,8 @@ package io.github.luckyqing.controller;
 
 import io.github.luckyqing.common.R;
 import io.github.luckyqing.common.RoleConstants;
-import io.github.luckyqing.entity.WorkLog;
-import io.github.luckyqing.service.WorkLogService;
+import io.github.luckyqing.entity.WorkLogEntity;
+import io.github.luckyqing.resposity.WorkLogResposity;
 import io.github.luckyqing.vo.worklog.DashboardTaskVO;
 import io.github.luckyqing.vo.worklog.WorkLogRespVO;
 import io.github.luckyqing.vo.worklog.WorkLogSaveReqVO;
@@ -23,7 +23,7 @@ import java.util.List;
 public class WorkLogController {
 
     @Autowired
-    private WorkLogService workLogService;
+    private WorkLogResposity workLogService;
 
     @Autowired
     private io.github.luckyqing.service.PermissionService permissionService;
@@ -66,7 +66,7 @@ public class WorkLogController {
         Long userId = (Long) request.getAttribute("userId");
         // 非管理员只能删除自己的工时记录
         if (!permissionService.getUserRoles(userId).contains(RoleConstants.ADMIN)) {
-            WorkLog log = workLogService.getById(id);
+            WorkLogEntity log = workLogService.getById(id);
             if (log != null && !log.getUserId().equals(userId)) {
                 return R.fail("无权删除他人的工时记录");
             }

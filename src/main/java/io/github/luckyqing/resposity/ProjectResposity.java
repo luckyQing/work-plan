@@ -1,7 +1,7 @@
-package io.github.luckyqing.service;
+package io.github.luckyqing.resposity;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import io.github.luckyqing.entity.Project;
+import io.github.luckyqing.entity.ProjectEntity;
 import io.github.luckyqing.mapper.ProjectMapper;
 import io.github.luckyqing.vo.project.ProjectRespVO;
 import io.github.luckyqing.vo.project.ProjectSaveReqVO;
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  * 项目管理服务
  */
 @Service
-public class ProjectService extends ServiceImpl<ProjectMapper, Project> {
+public class ProjectResposity extends ServiceImpl<ProjectMapper, ProjectEntity> {
 
     /**
      * 查询所有项目
@@ -31,7 +31,7 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> {
      * @param reqVO 项目信息
      */
     public void addProject(ProjectSaveReqVO reqVO) {
-        Project project = toEntity(reqVO);
+        ProjectEntity project = toEntity(reqVO);
         save(project);
     }
 
@@ -41,14 +41,14 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> {
      * @param reqVO 项目信息
      */
     public void updateProject(ProjectSaveReqVO reqVO) {
-        Project project = toEntity(reqVO);
+        ProjectEntity project = toEntity(reqVO);
         updateById(project);
     }
 
     /**
      * Entity 转 RespVO
      */
-    private ProjectRespVO toRespVO(Project project) {
+    private ProjectRespVO toRespVO(ProjectEntity project) {
         ProjectRespVO vo = new ProjectRespVO();
         vo.setId(project.getId());
         vo.setProjectName(project.getProjectName());
@@ -60,8 +60,8 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> {
     /**
      * ReqVO 转 Entity
      */
-    private Project toEntity(ProjectSaveReqVO reqVO) {
-        Project project = new Project();
+    private ProjectEntity toEntity(ProjectSaveReqVO reqVO) {
+        ProjectEntity project = new ProjectEntity();
         project.setId(reqVO.getId());
         project.setProjectName(reqVO.getProjectName());
         project.setStatus(reqVO.getStatus());

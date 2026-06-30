@@ -1,8 +1,8 @@
-package io.github.luckyqing.service;
+package io.github.luckyqing.resposity;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import io.github.luckyqing.entity.Dict;
+import io.github.luckyqing.entity.DictEntity;
 import io.github.luckyqing.mapper.DictMapper;
 import io.github.luckyqing.vo.config.ConfigRespVO;
 import io.github.luckyqing.vo.config.ConfigSaveReqVO;
@@ -17,34 +17,34 @@ import java.util.stream.Collectors;
  * 字典配置服务
  */
 @Service
-public class DictService extends ServiceImpl<DictMapper, Dict> {
+public class DictResposity extends ServiceImpl<DictMapper, DictEntity> {
 
     public List<ConfigRespVO> listByType(String configType) {
-        List<Dict> list = list(new LambdaQueryWrapper<Dict>()
-                .eq(Dict::getConfigType, configType)
-                .orderByAsc(Dict::getSortOrder));
+        List<DictEntity> list = list(new LambdaQueryWrapper<DictEntity>()
+                .eq(DictEntity::getConfigType, configType)
+                .orderByAsc(DictEntity::getSortOrder));
         return list.stream().map(this::toRespVO).collect(Collectors.toList());
     }
 
     public Map<String, List<ConfigRespVO>> listAllGrouped() {
-        List<Dict> all = list(new LambdaQueryWrapper<Dict>()
-                .orderByAsc(Dict::getConfigType)
-                .orderByAsc(Dict::getSortOrder));
+        List<DictEntity> all = list(new LambdaQueryWrapper<DictEntity>()
+                .orderByAsc(DictEntity::getConfigType)
+                .orderByAsc(DictEntity::getSortOrder));
         return all.stream().map(this::toRespVO)
                 .collect(Collectors.groupingBy(ConfigRespVO::getConfigType, LinkedHashMap::new, Collectors.toList()));
     }
 
     public List<ConfigRespVO> listAll() {
-        List<Dict> all = list(new LambdaQueryWrapper<Dict>()
-                .orderByAsc(Dict::getConfigType)
-                .orderByAsc(Dict::getSortOrder));
+        List<DictEntity> all = list(new LambdaQueryWrapper<DictEntity>()
+                .orderByAsc(DictEntity::getConfigType)
+                .orderByAsc(DictEntity::getSortOrder));
         return all.stream().map(this::toRespVO).collect(Collectors.toList());
     }
 
     public void addConfig(ConfigSaveReqVO reqVO) { save(toEntity(reqVO)); }
     public void updateConfig(ConfigSaveReqVO reqVO) { updateById(toEntity(reqVO)); }
 
-    private ConfigRespVO toRespVO(Dict config) {
+    private ConfigRespVO toRespVO(DictEntity config) {
         ConfigRespVO vo = new ConfigRespVO();
         vo.setId(config.getId());
         vo.setConfigType(config.getConfigType());
@@ -55,8 +55,8 @@ public class DictService extends ServiceImpl<DictMapper, Dict> {
         return vo;
     }
 
-    private Dict toEntity(ConfigSaveReqVO reqVO) {
-        Dict config = new Dict();
+    private DictEntity toEntity(ConfigSaveReqVO reqVO) {
+        DictEntity config = new DictEntity();
         config.setId(reqVO.getId());
         config.setConfigType(reqVO.getConfigType());
         config.setConfigLabel(reqVO.getConfigLabel());

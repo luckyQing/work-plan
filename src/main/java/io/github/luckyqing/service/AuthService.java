@@ -4,8 +4,8 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import io.github.luckyqing.common.JwtUtil;
 import io.github.luckyqing.common.R;
-import io.github.luckyqing.entity.User;
-import io.github.luckyqing.mapper.UserMapper;
+import io.github.luckyqing.entity.UserEntity;
+import io.github.luckyqing.resposity.UserResposity;
 import io.github.luckyqing.vo.auth.LoginReqVO;
 import io.github.luckyqing.vo.auth.LoginRespVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     @Autowired
-    private UserMapper userMapper;
+    private UserResposity userResposity;
 
     /**
      * 用户登录
@@ -32,8 +32,8 @@ public class AuthService {
             return R.fail("密码不能为空");
         }
 
-        User user = userMapper.selectOne(
-                new LambdaQueryWrapper<User>().eq(User::getUsername, reqVO.getUsername()));
+        UserEntity user = userResposity.getOne(
+                new LambdaQueryWrapper<UserEntity>().eq(UserEntity::getUsername, reqVO.getUsername()));
         if (user == null) {
             return R.fail("用户不存在");
         }

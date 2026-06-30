@@ -2,7 +2,7 @@ package io.github.luckyqing.controller;
 
 import io.github.luckyqing.common.R;
 import io.github.luckyqing.common.RoleConstants;
-import io.github.luckyqing.entity.Permission;
+import io.github.luckyqing.entity.PermissionEntity;
 import io.github.luckyqing.service.PermissionService;
 import io.github.luckyqing.vo.permission.*;
 import io.github.luckyqing.vo.permission.RoleSaveReqVO;
@@ -30,7 +30,7 @@ public class PermissionController {
     @GetMapping("/menus")
     public R<List<UserMenuRespVO>> myMenus(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        List<Permission> menus = permissionService.getUserMenus(userId);
+        List<PermissionEntity> menus = permissionService.getUserMenus(userId);
         List<UserMenuRespVO> vos = menus.stream().map(p -> {
             UserMenuRespVO vo = new UserMenuRespVO();
             vo.setId(p.getId());

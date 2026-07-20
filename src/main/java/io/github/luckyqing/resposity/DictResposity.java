@@ -14,7 +14,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 字典配置服务
+ * <p>
+ * 字典配置表 服务实现类
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
  */
 @Service
 public class DictResposity extends ServiceImpl<DictMapper, DictEntity> {

@@ -2,6 +2,7 @@ package io.github.luckyqing.resposity;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.github.luckyqing.entity.TaskEntity;
+import io.github.luckyqing.entity.dataobject.TaskDO;
 import io.github.luckyqing.mapper.TaskMapper;
 import io.github.luckyqing.vo.task.TaskListReqVO;
 import io.github.luckyqing.vo.task.TaskRespVO;
@@ -13,8 +14,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 任务管理服务
- * 提供任务的增删改查及按日期范围查询功能
+ * <p>
+ * 任务表 服务实现类
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
  */
 @Service
 public class TaskResposity extends ServiceImpl<TaskMapper, TaskEntity> {
@@ -27,12 +32,16 @@ public class TaskResposity extends ServiceImpl<TaskMapper, TaskEntity> {
      * @return 任务RespVO列表
      */
     public List<TaskRespVO> listTasks(TaskListReqVO reqVO) {
-        List<TaskEntity> tasks;
+        List<TaskDO> tasks;
         if (reqVO.getAssigneeId() != null && reqVO.getStartDate() != null && reqVO.getEndDate() != null) {
             tasks = baseMapper.selectByAssigneeAndDateRange(
                     reqVO.getAssigneeId(), reqVO.getStartDate(), reqVO.getEndDate());
         } else {
-            tasks = list();
+            tasks = list().stream().map(e -> {
+                TaskDO d = new TaskDO();
+                org.springframework.beans.BeanUtils.copyProperties(e, d);
+                return d;
+            }).collect(Collectors.toList());
         }
         return tasks.stream().map(this::toRespVO).collect(Collectors.toList());
     }
@@ -45,7 +54,12 @@ public class TaskResposity extends ServiceImpl<TaskMapper, TaskEntity> {
      */
     public TaskRespVO getTaskById(Long id) {
         TaskEntity task = getById(id);
-        return task != null ? toRespVO(task) : null;
+        if (task == null) {
+            return null;
+        }
+        TaskDO d = new TaskDO();
+        org.springframework.beans.BeanUtils.copyProperties(task, d);
+        return toRespVO(d);
     }
 
     /**
@@ -55,7 +69,7 @@ public class TaskResposity extends ServiceImpl<TaskMapper, TaskEntity> {
      * @param endDate   结束日期
      * @return 任务Entity列表
      */
-    public List<TaskEntity> getByDateRange(String startDate, String endDate) {
+    public List<TaskDO> getByDateRange(String startDate, String endDate) {
         return baseMapper.selectByDateRange(startDate, endDate);
     }
 
@@ -100,7 +114,7 @@ public class TaskResposity extends ServiceImpl<TaskMapper, TaskEntity> {
     /**
      * Entity 转 RespVO
      */
-    private TaskRespVO toRespVO(TaskEntity task) {
+    private TaskRespVO toRespVO(TaskDO task) {
         TaskRespVO vo = new TaskRespVO();
         vo.setId(task.getId());
         vo.setTaskName(task.getTaskName());

@@ -1,87 +1,102 @@
 package io.github.luckyqing.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
-import lombok.Data;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /**
- * 需求实体
+ * <p>
+ * 需求表
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
  */
-@Data
+@Getter
+@Setter
 @TableName("t_demand")
-public class DemandEntity {
+public class DemandEntity extends BaseEntity {
 
-    /** 主键ID */
-    @TableId(type = IdType.AUTO)
-    private Long id;
-
-    /** 需求名称 */
+    /**
+     * 需求名称
+     */
+    @TableField("demand_name")
     private String demandName;
 
-    /** 需求类型: 需求/优化/Bug */
+    /**
+     * 需求类型（字典值）
+     */
+    @TableField("demand_type")
     private String demandType;
 
-    /** 所属项目ID */
+    /**
+     * 所属项目ID
+     */
+    @TableField("project_id")
     private Long projectId;
 
-    /** 需求描述 */
+    /**
+     * 需求描述
+     */
+    @TableField("description")
     private String description;
 
-    /** 状态: 0待开始 1进行中 2已完成 */
+    /**
+     * 状态（字典值）
+     */
+    @TableField("status")
     private Integer status;
 
-    /** 优先级: 0低 1中 2高 */
+    /**
+     * 优先级（字典值）
+     */
+    @TableField("priority")
     private Integer priority;
 
-    /** 创建人ID */
+    /**
+     * 需求提出人ID
+     */
+    @TableField("creator_id")
     private Long creatorId;
 
-    /** 计划开始日期 */
+    /**
+     * 计划开始日期
+     */
+    @TableField("start_date")
     private LocalDate startDate;
 
-    /** 计划结束日期 */
+    /**
+     * 计划结束日期
+     */
+    @TableField("end_date")
     private LocalDate endDate;
 
-    /** 预估总工时 */
+    /**
+     * 预估总工时
+     */
+    @TableField("total_hours")
     private BigDecimal totalHours;
 
-    /** 产品人员（逗号分隔的用户ID） */
+    /**
+     * 产品人员（逗号分隔用户ID）
+     */
+    @TableField("product_members")
     private String productMembers;
 
-    /** 测试人员（逗号分隔的用户ID） */
+    /**
+     * 测试人员（逗号分隔用户ID）
+     */
+    @TableField("test_members")
     private String testMembers;
 
-    /** 研发人员（逗号分隔的用户ID） */
+    /**
+     * 研发人员（逗号分隔用户ID）
+     */
+    @TableField("dev_members")
     private String devMembers;
 
-    /** 创建人ID */
-    @TableField(fill = FieldFill.INSERT)
-    private Long createId;
-
-    /** 修改人ID */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private Long updateId;
-
-    /** 创建时间 */
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    /** 更新时间 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
-    /** 逻辑删除标识 */
-    @TableLogic
-    private Integer deleted;
-
-    /** 项目名称（非数据库字段，关联查询用） */
-    @TableField(exist = false)
-    private String projectName;
-
-    /** 创建人姓名（非数据库字段，关联查询用） */
-    @TableField(exist = false)
-    private String creatorName;
 }

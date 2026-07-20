@@ -2,12 +2,18 @@ package io.github.luckyqing.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import io.github.luckyqing.entity.TaskEntity;
+import io.github.luckyqing.entity.dataobject.TaskDO;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
 /**
- * 任务 Mapper 接口
+ * <p>
+ * 任务表 Mapper 接口
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
  */
 public interface TaskMapper extends BaseMapper<TaskEntity> {
 
@@ -19,7 +25,7 @@ public interface TaskMapper extends BaseMapper<TaskEntity> {
      * @param endDate    结束日期 yyyy-MM-dd
      * @return 任务列表（含负责人姓名、需求名称）
      */
-    List<TaskEntity> selectByAssigneeAndDateRange(@Param("assigneeId") Long assigneeId,
+    List<TaskDO> selectByAssigneeAndDateRange(@Param("assigneeId") Long assigneeId,
                                             @Param("startDate") String startDate,
                                             @Param("endDate") String endDate);
 
@@ -30,6 +36,6 @@ public interface TaskMapper extends BaseMapper<TaskEntity> {
      * @param endDate   结束日期 yyyy-MM-dd
      * @return 任务列表（含负责人姓名、需求名称）
      */
-    List<TaskEntity> selectByDateRange(@Param("startDate") String startDate,
+    List<TaskDO> selectByDateRange(@Param("startDate") String startDate,
                                  @Param("endDate") String endDate);
 }

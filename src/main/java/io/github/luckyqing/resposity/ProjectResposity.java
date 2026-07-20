@@ -11,7 +11,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 项目管理服务
+ * <p>
+ * 项目表 服务实现类
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
  */
 @Service
 public class ProjectResposity extends ServiceImpl<ProjectMapper, ProjectEntity> {

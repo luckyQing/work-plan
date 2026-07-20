@@ -1,56 +1,57 @@
 package io.github.luckyqing.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
-import lombok.Data;
-
-import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
- * 用户实体
+ * <p>
+ * 用户表
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
  */
-@Data
+@Getter
+@Setter
 @TableName("t_user")
-public class UserEntity {
+public class UserEntity extends BaseEntity {
 
-    /** 主键ID */
-    @TableId(type = IdType.AUTO)
-    private Long id;
-
-    /** 登录账号 */
+    /**
+     * 登录账号
+     */
+    @TableField("username")
     private String username;
 
-    /** 登录密码（MD5加密） */
+    /**
+     * 密码
+     */
+    @TableField("password")
     private String password;
 
-    /** 真实姓名 */
+    /**
+     * 真实姓名
+     */
+    @TableField("real_name")
     private String realName;
 
-    /** 所属部门（字典值） */
+    /**
+     * 所属部门（字典值）
+     */
+    @TableField("dept")
     private String dept;
 
-    /** 角色: ADMIN-管理员 USER-普通用户 */
+    /**
+     * 角色（字典值）
+     */
+    @TableField("role")
     private String role;
 
-    /** 状态: 1启用 0禁用 */
+    /**
+     * 状态: 1启用 0禁用
+     */
+    @TableField("status")
     private Integer status;
 
-    /** 创建人ID */
-    @TableField(fill = FieldFill.INSERT)
-    private Long createId;
-
-    /** 修改人ID */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private Long updateId;
-
-    /** 创建时间 */
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    /** 更新时间 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
-    /** 逻辑删除标识 */
-    @TableLogic
-    private Integer deleted;
 }

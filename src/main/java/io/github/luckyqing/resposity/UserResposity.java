@@ -16,7 +16,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 用户管理服务
+ * <p>
+ * 用户表 服务实现类
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
  */
 @Service
 public class UserResposity extends ServiceImpl<UserMapper, UserEntity> {

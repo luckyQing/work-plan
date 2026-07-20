@@ -6,6 +6,8 @@ import io.github.luckyqing.entity.DemandEntity;
 import io.github.luckyqing.entity.ProjectEntity;
 import io.github.luckyqing.entity.TaskEntity;
 import io.github.luckyqing.entity.WorkLogEntity;
+import io.github.luckyqing.entity.dataobject.TaskDO;
+import io.github.luckyqing.entity.dataobject.WorkLogDO;
 import io.github.luckyqing.mapper.WorkLogMapper;
 import io.github.luckyqing.vo.worklog.DashboardTaskVO;
 import io.github.luckyqing.vo.worklog.WorkLogRespVO;
@@ -22,7 +24,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 工时录入服务
+ * <p>
+ * 工时录入表 服务实现类
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
  */
 @Service
 public class WorkLogResposity extends ServiceImpl<WorkLogMapper, WorkLogEntity> {
@@ -53,7 +60,7 @@ public class WorkLogResposity extends ServiceImpl<WorkLogMapper, WorkLogEntity> 
      * 查询指定用户指定日期的工时记录
      */
     public List<WorkLogRespVO> listByUserAndDate(Long userId, String logDate) {
-        List<WorkLogEntity> logs = baseMapper.selectByUserAndDate(userId, logDate);
+        List<WorkLogDO> logs = baseMapper.selectByUserAndDate(userId, logDate);
         return logs.stream().map(this::toRespVO).collect(Collectors.toList());
     }
 
@@ -64,23 +71,23 @@ public class WorkLogResposity extends ServiceImpl<WorkLogMapper, WorkLogEntity> 
      */
     public List<DashboardTaskVO> getDashboardTasks(Long userId, String today) {
         // 1. 今日进行中的任务（start_date <= today <= end_date）
-        List<TaskEntity> todayTasks = taskService.getByDateRange(today, today).stream()
+        List<TaskDO> todayTasks = taskService.getByDateRange(today, today).stream()
                 .filter(t -> t.getAssigneeId().equals(userId))
                 .collect(Collectors.toList());
 
         // 2. 超期未完成任务（end_date < today 且 status != 2）
         // 查询 end_date 在 today 之前的任务，再过滤未完成
-        List<TaskEntity> overdueTasks = taskService.getByDateRange("2000-01-01", today).stream()
+        List<TaskDO> overdueTasks = taskService.getByDateRange("2000-01-01", today).stream()
                 .filter(t -> t.getAssigneeId().equals(userId))
                 .filter(t -> t.getEndDate() != null && t.getEndDate().toString().compareTo(today) < 0)
                 .filter(t -> t.getStatus() == null || t.getStatus() != 2)
                 .collect(Collectors.toList());
 
         // 合并：今日任务在前，超期任务在后
-        List<TaskEntity> tasks = new ArrayList<>(todayTasks);
+        List<TaskDO> tasks = new ArrayList<>(todayTasks);
         // 去重（避免今日任务和超期任务重复）
         Set<Long> todayIds = todayTasks.stream()
-                .map(TaskEntity::getId)
+                .map(TaskDO::getId)
                 .collect(Collectors.toSet());
         overdueTasks.stream().filter(t -> !todayIds.contains(t.getId())).forEach(tasks::add);
 
@@ -105,7 +112,7 @@ public class WorkLogResposity extends ServiceImpl<WorkLogMapper, WorkLogEntity> 
                         Collectors.reducing(BigDecimal.ZERO, WorkLogEntity::getHours, BigDecimal::add)));
 
         List<DashboardTaskVO> result = new ArrayList<>();
-        for (TaskEntity task : tasks) {
+        for (TaskDO task : tasks) {
             DashboardTaskVO vo = new DashboardTaskVO();
             vo.setTaskId(task.getId());
             vo.setTaskName(task.getTaskName());
@@ -151,7 +158,7 @@ public class WorkLogResposity extends ServiceImpl<WorkLogMapper, WorkLogEntity> 
         return result;
     }
 
-    private WorkLogRespVO toRespVO(WorkLogEntity log) {
+    private WorkLogRespVO toRespVO(WorkLogDO log) {
         WorkLogRespVO vo = new WorkLogRespVO();
         vo.setId(log.getId());
         vo.setTaskId(log.getTaskId());

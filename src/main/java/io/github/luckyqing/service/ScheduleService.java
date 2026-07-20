@@ -5,6 +5,7 @@ import io.github.luckyqing.entity.DemandEntity;
 import io.github.luckyqing.entity.ProjectEntity;
 import io.github.luckyqing.entity.UserEntity;
 import io.github.luckyqing.entity.TaskEntity;
+import io.github.luckyqing.entity.dataobject.TaskDO;
 import io.github.luckyqing.resposity.DemandResposity;
 import io.github.luckyqing.resposity.ProjectResposity;
 import io.github.luckyqing.resposity.TaskResposity;
@@ -52,7 +53,7 @@ public class ScheduleService {
         List<UserEntity> users = resolveUsers(reqVO, selfUserId);
 
         // 2. 查询日期范围内的所有任务
-        List<TaskEntity> allTasks = taskService.getByDateRange(reqVO.getStartDate(), reqVO.getEndDate());
+        List<TaskDO> allTasks = taskService.getByDateRange(reqVO.getStartDate(), reqVO.getEndDate());
 
         // 3. 如果有项目筛选，获取该项目下的需求ID集合
         Set<Long> demandIdsInProject = resolveDemandIdsByProject(reqVO.getProjectId());
@@ -60,7 +61,7 @@ public class ScheduleService {
         // 4. 按人员组装排期数据
         List<SchedulePersonRespVO> result = new ArrayList<>();
         for (UserEntity user : users) {
-            List<TaskEntity> userTasks = filterUserTasks(allTasks, user, demandIdsInProject, reqVO.getKeyword());
+            List<TaskDO> userTasks = filterUserTasks(allTasks, user, demandIdsInProject, reqVO.getKeyword());
 
             // 有关键词筛选时，跳过无任务的人员
             if (userTasks.isEmpty() && reqVO.getKeyword() != null && !reqVO.getKeyword().isEmpty()) {
@@ -104,7 +105,7 @@ public class ScheduleService {
     /**
      * 筛选某个用户在当前条件下的任务
      */
-    private List<TaskEntity> filterUserTasks(List<TaskEntity> allTasks, UserEntity user,
+    private List<TaskDO> filterUserTasks(List<TaskDO> allTasks, UserEntity user,
                                        Set<Long> demandIdsInProject, String keyword) {
         return allTasks.stream()
                 .filter(t -> t.getAssigneeId().equals(user.getId()))
@@ -127,11 +128,11 @@ public class ScheduleService {
      * 组装单个人员的排期RespVO
      * 将任务按需求分组：有需求的任务归入需求主任务下作为子任务，无需求的作为独立任务
      */
-    private SchedulePersonRespVO buildPersonRespVO(UserEntity user, List<TaskEntity> userTasks, ScheduleReqVO reqVO) {
+    private SchedulePersonRespVO buildPersonRespVO(UserEntity user, List<TaskDO> userTasks, ScheduleReqVO reqVO) {
         // 按需求ID分组
-        Map<Long, List<TaskEntity>> tasksByDemand = new LinkedHashMap<>();
-        List<TaskEntity> independentTasks = new ArrayList<>();
-        for (TaskEntity t : userTasks) {
+        Map<Long, List<TaskDO>> tasksByDemand = new LinkedHashMap<>();
+        List<TaskDO> independentTasks = new ArrayList<>();
+        for (TaskDO t : userTasks) {
             if (t.getDemandId() != null) {
                 tasksByDemand.computeIfAbsent(t.getDemandId(), k -> new ArrayList<>()).add(t);
             } else {
@@ -142,7 +143,7 @@ public class ScheduleService {
         List<ScheduleTaskRespVO> taskVOList = new ArrayList<>();
 
         // 需求级别的主任务（含子任务）
-        for (Map.Entry<Long, List<TaskEntity>> entry : tasksByDemand.entrySet()) {
+        for (Map.Entry<Long, List<TaskDO>> entry : tasksByDemand.entrySet()) {
             DemandEntity demand = demandService.getById(entry.getKey());
             if (demand == null) {
                 continue;
@@ -151,7 +152,7 @@ public class ScheduleService {
         }
 
         // 独立任务（无关联需求）
-        for (TaskEntity t : independentTasks) {
+        for (TaskDO t : independentTasks) {
             taskVOList.add(buildIndependentTaskRespVO(t));
         }
 
@@ -166,7 +167,7 @@ public class ScheduleService {
      * 构建需求级别的主任务RespVO
      * 日期范围取子任务的最小开始日期和最大结束日期，工时取子任务之和
      */
-    private ScheduleTaskRespVO buildDemandTaskRespVO(DemandEntity demand, List<TaskEntity> subTasks, ScheduleReqVO reqVO) {
+    private ScheduleTaskRespVO buildDemandTaskRespVO(DemandEntity demand, List<TaskDO> subTasks, ScheduleReqVO reqVO) {
         String minStart = subTasks.stream().map(t -> t.getStartDate().toString())
                 .min(String::compareTo).orElse(reqVO.getStartDate());
         String maxEnd = subTasks.stream().map(t -> t.getEndDate().toString())
@@ -180,14 +181,16 @@ public class ScheduleService {
         // 设置项目名称
         if (demand.getProjectId() != null) {
             ProjectEntity project = projectService.getById(demand.getProjectId());
-            if (project != null) taskVO.setProjectName(project.getProjectName());
+            if (project != null) {
+                taskVO.setProjectName(project.getProjectName());
+            }
         }
         taskVO.setStartDate(minStart);
         taskVO.setEndDate(maxEnd);
         taskVO.setTotalHours(totalH);
 
         List<ScheduleSubTaskRespVO> subList = new ArrayList<>();
-        for (TaskEntity st : subTasks) {
+        for (TaskDO st : subTasks) {
             ScheduleSubTaskRespVO subVO = new ScheduleSubTaskRespVO();
             subVO.setTaskId(st.getId());
             subVO.setName(st.getTaskName());
@@ -204,7 +207,7 @@ public class ScheduleService {
     /**
      * 构建独立任务RespVO（无关联需求的任务）
      */
-    private ScheduleTaskRespVO buildIndependentTaskRespVO(TaskEntity task) {
+    private ScheduleTaskRespVO buildIndependentTaskRespVO(TaskDO task) {
         ScheduleTaskRespVO taskVO = new ScheduleTaskRespVO();
         taskVO.setTaskId(task.getId());
         taskVO.setTaskName(task.getTaskName());

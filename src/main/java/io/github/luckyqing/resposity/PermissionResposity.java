@@ -8,7 +8,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * 权限数据访问
+ * <p>
+ * 权限表 服务实现类
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
  */
 @Service
 public class PermissionResposity extends ServiceImpl<PermissionMapper, PermissionEntity> {

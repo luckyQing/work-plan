@@ -1,15 +1,22 @@
 package io.github.luckyqing.test;
 
+import cn.hutool.core.util.ArrayUtil;
 import com.baomidou.mybatisplus.generator.FastAutoGenerator;
+import com.baomidou.mybatisplus.generator.config.OutputFile;
 import com.baomidou.mybatisplus.generator.config.TemplateType;
+import com.baomidou.mybatisplus.generator.config.rules.DbColumnType;
 import com.baomidou.mybatisplus.generator.engine.FreemarkerTemplateEngine;
+import io.github.luckyqing.entity.BaseEntity;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.type.JdbcType;
 import org.junit.jupiter.api.Test;
 import org.springframework.lang.Nullable;
 
 import javax.validation.constraints.NotNull;
+import java.nio.file.Paths;
+import java.util.Collections;
 
 @Slf4j
 public class MybatisPlusGenerateTest {
@@ -34,12 +41,22 @@ public class MybatisPlusGenerateTest {
      */
     public void generateCode(GenerateCodeDTO dto) {
         FastAutoGenerator.create(dto.getUrl(), dto.getUsername(), dto.getPassword())
+                .dataSourceConfig(builder -> builder
+                        .typeConvertHandler((globalConfig, typeRegistry, metaInfo) -> {
+                            if (JdbcType.TINYINT == metaInfo.getJdbcType()
+                                    || JdbcType.SMALLINT == metaInfo.getJdbcType()) {
+                                return DbColumnType.INTEGER;
+                            }
+                            return typeRegistry.getColumnType(metaInfo);
+                        })
+                )
                 .globalConfig(builder -> builder
                         .author(dto.getAuthor())
                         .disableServiceInterface()
-//                        .outputDir(Paths.get(System.getProperty("user.dir")) + "/src/main/java")
-                        .outputDir("d:/generate-code")
+                        .outputDir(Paths.get(System.getProperty("user.dir")) + "/src/main/java")
+                        //.outputDir("d:/generate-code")
                         .commentDate("yyyy-MM-dd")
+                        .disableOpenDir()
                 )
                 .packageConfig(builder -> builder
                         .parent(dto.getParent())
@@ -49,19 +66,28 @@ public class MybatisPlusGenerateTest {
                         .serviceImpl("resposity")
                         .controller(null)
                         .xml("mapper")
+                        .pathInfo(Collections.singletonMap(OutputFile.xml,
+                                Paths.get(System.getProperty("user.dir")) + "/src/main/resources/mapper"))
                 )
-                .strategyConfig(builder -> builder
-                        .addFieldPrefix("f_", "t_")
-                        .addTablePrefix("t_")
-                        .addInclude(dto.getTables())
-                        .serviceBuilder().formatServiceImplFileName("%sResposity")
-                        .mapperBuilder().formatMapperFileName("%sMapper").formatXmlFileName("%sMapper")
+                .strategyConfig(builder -> {
+                    builder.addFieldPrefix("f_", "t_")
+                        .addTablePrefix("t_");
+                    if (ArrayUtil.isNotEmpty(dto.getTables())) {
+                        builder.addInclude(dto.getTables());
+                    }
+                    builder
+                        .serviceBuilder().formatServiceImplFileName("%sResposity").fileOverride()
+                        .mapperBuilder().formatMapperFileName("%sMapper").formatXmlFileName("%sMapper").fileOverride()
                         .entityBuilder()
+                        .superClass(BaseEntity.class)
+                        .addSuperEntityColumns("id", "create_id", "update_id", "create_time", "update_time", "deleted")
+                        .disableSerialVersionUID()
                         .formatFileName("%sEntity")
                         .enableTableFieldAnnotation()
                         .enableLombok()
                         .logicDeleteColumnName("deleted")
-                ).templateConfig(builder -> builder
+                        .fileOverride();
+                }).templateConfig(builder -> builder
                         .disable(TemplateType.CONTROLLER)
                         .disable(TemplateType.SERVICE)
                         .serviceImpl("/templates/serviceImpl.java")

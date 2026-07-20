@@ -1,27 +1,45 @@
 package io.github.luckyqing.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
-import lombok.Data;
-import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Getter;
+import lombok.Setter;
 
-/** 角色实体 */
-@Data
+/**
+ * <p>
+ * 角色表
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
+ */
+@Getter
+@Setter
 @TableName("t_role")
-public class RoleEntity {
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class RoleEntity extends BaseEntity {
+
+    /**
+     * 角色标识，如 ADMIN/USER
+     */
+    @TableField("role_code")
     private String roleCode;
+
+    /**
+     * 角色名称
+     */
+    @TableField("role_name")
     private String roleName;
+
+    /**
+     * 描述
+     */
+    @TableField("description")
     private String description;
+
+    /**
+     * 状态: 1启用 0禁用
+     */
+    @TableField("status")
     private Integer status;
-    @TableField(fill = FieldFill.INSERT)
-    private Long createId;
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private Long updateId;
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-    @TableLogic
-    private Integer deleted;
+
 }

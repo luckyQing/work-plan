@@ -1,53 +1,51 @@
 package io.github.luckyqing.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
-import lombok.Data;
-
-import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
- * 字典配置实体
+ * <p>
+ * 字典配置表
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
  */
-@Data
+@Getter
+@Setter
 @TableName("t_dict")
-public class DictEntity {
+public class DictEntity extends BaseEntity {
 
-    /** 主键ID */
-    @TableId(type = IdType.AUTO)
-    private Long id;
-
-    /** 配置类别 */
+    /**
+     * 配置类别
+     */
+    @TableField("config_type")
     private String configType;
 
-    /** 显示名称 */
+    /**
+     * 显示名称
+     */
+    @TableField("config_label")
     private String configLabel;
 
-    /** 配置值 */
+    /**
+     * 配置值
+     */
+    @TableField("config_value")
     private String configValue;
 
-    /** 排序号 */
+    /**
+     * 排序号
+     */
+    @TableField("sort_order")
     private Integer sortOrder;
 
-    /** 状态: 1启用 0禁用 */
+    /**
+     * 状态: 1启用 0禁用
+     */
+    @TableField("status")
     private Integer status;
 
-    /** 创建人ID */
-    @TableField(fill = FieldFill.INSERT)
-    private Long createId;
-
-    /** 修改人ID */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private Long updateId;
-
-    /** 创建时间 */
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    /** 更新时间 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
-    /** 逻辑删除标识 */
-    @TableLogic
-    private Integer deleted;
 }

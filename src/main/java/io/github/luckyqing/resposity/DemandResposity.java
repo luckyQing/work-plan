@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.github.luckyqing.common.R;
 import io.github.luckyqing.entity.DemandEntity;
 import io.github.luckyqing.entity.TaskEntity;
+import io.github.luckyqing.entity.dataobject.DemandDO;
 import io.github.luckyqing.mapper.DemandMapper;
 import io.github.luckyqing.vo.demand.DemandRespVO;
 import io.github.luckyqing.vo.demand.DemandSaveReqVO;
@@ -16,8 +17,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 需求管理服务
- * 提供需求的增删改查功能
+ * <p>
+ * 需求表 服务实现类
+ * </p>
+ *
+ * @author collin.li
+ * @since 2026-07-20
  */
 @Service
 public class DemandResposity extends ServiceImpl<DemandMapper, DemandEntity> {
@@ -39,7 +44,12 @@ public class DemandResposity extends ServiceImpl<DemandMapper, DemandEntity> {
      */
     public DemandRespVO getDemandById(Long id) {
         DemandEntity demand = getById(id);
-        return demand != null ? toRespVO(demand) : null;
+        if (demand == null) {
+            return null;
+        }
+        DemandDO d = new DemandDO();
+        org.springframework.beans.BeanUtils.copyProperties(demand, d);
+        return toRespVO(d);
     }
 
     /**
@@ -67,7 +77,7 @@ public class DemandResposity extends ServiceImpl<DemandMapper, DemandEntity> {
     /**
      * Entity 转 RespVO
      */
-    private DemandRespVO toRespVO(DemandEntity demand) {
+    private DemandRespVO toRespVO(DemandDO demand) {
         DemandRespVO vo = new DemandRespVO();
         vo.setId(demand.getId());
         vo.setDemandName(demand.getDemandName());
@@ -139,7 +149,9 @@ public class DemandResposity extends ServiceImpl<DemandMapper, DemandEntity> {
     /** 完成需求（需所有子任务已完成） */
     public R<Void> completeDemand(Long id) {
         DemandEntity demand = getById(id);
-        if (demand == null) return R.fail("需求不存在");
+        if (demand == null) {
+            return R.fail("需求不存在");
+        }
         if (demand.getStatus() == null || demand.getStatus() != STATUS_DOING) {
             return R.fail("只有进行中的需求才能完成");
         }
@@ -162,6 +174,10 @@ public class DemandResposity extends ServiceImpl<DemandMapper, DemandEntity> {
         List<DemandEntity> list = list(new LambdaQueryWrapper<DemandEntity>()
                 .eq(DemandEntity::getStatus, STATUS_DOING)
                 .orderByDesc(DemandEntity::getCreateTime));
-        return list.stream().map(this::toRespVO).collect(Collectors.toList());
+        return list.stream().map(e -> {
+            DemandDO d = new DemandDO();
+            org.springframework.beans.BeanUtils.copyProperties(e, d);
+            return toRespVO(d);
+        }).collect(Collectors.toList());
     }
 }

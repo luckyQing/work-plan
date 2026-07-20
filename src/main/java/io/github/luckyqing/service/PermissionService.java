@@ -51,7 +51,9 @@ public class PermissionService {
     public Set<String> getUserRoles(Long userId) {
         String key = KEY_ROLES + userId;
         Object cached = redisTemplate.opsForValue().get(key);
-        if (cached instanceof Set) return (Set<String>) cached;
+        if (cached instanceof Set) {
+            return (Set<String>) cached;
+        }
         List<String> roles = permissionResposity.selectRoleCodesByUserId(userId);
         Set<String> roleSet = new HashSet<>(roles);
         redisTemplate.opsForValue().set(key, roleSet, CACHE_TTL, TimeUnit.MINUTES);
@@ -63,7 +65,9 @@ public class PermissionService {
     public Set<String> getUserPermCodes(Long userId) {
         String key = KEY_CODES + userId;
         Object cached = redisTemplate.opsForValue().get(key);
-        if (cached instanceof Set) return (Set<String>) cached;
+        if (cached instanceof Set) {
+            return (Set<String>) cached;
+        }
         List<PermissionEntity> perms = permissionResposity.selectByUserId(userId);
         Set<String> codes = perms.stream().map(PermissionEntity::getPermCode).collect(Collectors.toSet());
         redisTemplate.opsForValue().set(key, codes, CACHE_TTL, TimeUnit.MINUTES);

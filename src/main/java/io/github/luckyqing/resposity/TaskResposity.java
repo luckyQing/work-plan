@@ -1,6 +1,7 @@
 package io.github.luckyqing.resposity;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.github.luckyqing.convert.EntityConvert;
 import io.github.luckyqing.entity.TaskEntity;
 import io.github.luckyqing.entity.dataobject.TaskDO;
 import io.github.luckyqing.mapper.TaskMapper;
@@ -37,11 +38,7 @@ public class TaskResposity extends ServiceImpl<TaskMapper, TaskEntity> {
             tasks = baseMapper.selectByAssigneeAndDateRange(
                     reqVO.getAssigneeId(), reqVO.getStartDate(), reqVO.getEndDate());
         } else {
-            tasks = list().stream().map(e -> {
-                TaskDO d = new TaskDO();
-                org.springframework.beans.BeanUtils.copyProperties(e, d);
-                return d;
-            }).collect(Collectors.toList());
+            tasks = EntityConvert.INSTANCE.toTaskDOList(list());
         }
         return tasks.stream().map(this::toRespVO).collect(Collectors.toList());
     }
@@ -57,8 +54,7 @@ public class TaskResposity extends ServiceImpl<TaskMapper, TaskEntity> {
         if (task == null) {
             return null;
         }
-        TaskDO d = new TaskDO();
-        org.springframework.beans.BeanUtils.copyProperties(task, d);
+        TaskDO d = EntityConvert.INSTANCE.toTaskDO(task);
         return toRespVO(d);
     }
 

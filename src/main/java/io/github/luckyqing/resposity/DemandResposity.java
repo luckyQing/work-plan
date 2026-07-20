@@ -3,6 +3,7 @@ package io.github.luckyqing.resposity;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.github.luckyqing.common.R;
+import io.github.luckyqing.convert.EntityConvert;
 import io.github.luckyqing.entity.DemandEntity;
 import io.github.luckyqing.entity.TaskEntity;
 import io.github.luckyqing.entity.dataobject.DemandDO;
@@ -47,8 +48,7 @@ public class DemandResposity extends ServiceImpl<DemandMapper, DemandEntity> {
         if (demand == null) {
             return null;
         }
-        DemandDO d = new DemandDO();
-        org.springframework.beans.BeanUtils.copyProperties(demand, d);
+        DemandDO d = EntityConvert.INSTANCE.toDemandDO(demand);
         return toRespVO(d);
     }
 
@@ -135,7 +135,9 @@ public class DemandResposity extends ServiceImpl<DemandMapper, DemandEntity> {
     /** 开始需求 */
     public R<Void> startDemand(Long id) {
         DemandEntity demand = getById(id);
-        if (demand == null) return R.fail("需求不存在");
+        if (demand == null) {
+            return R.fail("需求不存在");
+        }
         if (demand.getStatus() != null && demand.getStatus() != STATUS_TODO) {
             return R.fail("只有待开始的需求才能开始");
         }
@@ -174,10 +176,7 @@ public class DemandResposity extends ServiceImpl<DemandMapper, DemandEntity> {
         List<DemandEntity> list = list(new LambdaQueryWrapper<DemandEntity>()
                 .eq(DemandEntity::getStatus, STATUS_DOING)
                 .orderByDesc(DemandEntity::getCreateTime));
-        return list.stream().map(e -> {
-            DemandDO d = new DemandDO();
-            org.springframework.beans.BeanUtils.copyProperties(e, d);
-            return toRespVO(d);
-        }).collect(Collectors.toList());
+        return EntityConvert.INSTANCE.toDemandDOList(list).stream()
+                .map(this::toRespVO).collect(Collectors.toList());
     }
 }

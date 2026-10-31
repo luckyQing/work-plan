@@ -23,6 +23,9 @@
         <hutool.version>5.8.18</hutool.version>
         <jjwt.version>0.11.5</jjwt.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <shardingsphere.version>5.5.3</shardingsphere.version>
+        <!-- 覆盖 Spring Boot 2.6 管理的 3.12.0：ShardingSphere 5.5.3 依赖 3.18.0 新增的 org.apache.commons.lang3.Strings -->
+        <commons-lang3.version>3.18.0</commons-lang3.version>
     </properties>
 
     <dependencies>
@@ -103,6 +106,48 @@
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-jdbc</artifactId>
+            <version>${shardingsphere.version}</version>
+        </dependency>
+        <!-- shardingsphere-jdbc 5.5.x 只声明了核心模块，以下功能模块需按需显式引入 -->
+        <!-- 分片规则（ShardingRuleConfiguration / INTERVAL 算法） -->
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-sharding-core</artifactId>
+            <version>${shardingsphere.version}</version>
+        </dependency>
+        <!-- MySQL 方言 SQL 解析 -->
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-parser-sql-engine-mysql</artifactId>
+            <version>${shardingsphere.version}</version>
+        </dependency>
+        <!-- MySQL 数据库类型识别与元数据加载 -->
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-database-connector-mysql</artifactId>
+            <version>${shardingsphere.version}</version>
+        </dependency>
+        <!-- Standalone 模式内存元数据仓库 -->
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-standalone-mode-repository-memory</artifactId>
+            <version>${shardingsphere.version}</version>
+        </dependency>
+        <!-- 默认权限提供者 ALL_PERMITTED（缺少时启动报 SPI-00001） -->
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-authority-simple</artifactId>
+            <version>${shardingsphere.version}</version>
+        </dependency>
+        <!-- HikariCP 连接池属性识别 -->
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-infra-data-source-pool-hikari</artifactId>
+            <version>${shardingsphere.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

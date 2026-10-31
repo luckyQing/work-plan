@@ -15,14 +15,22 @@ spring:
       write-dates-as-timestamps: false
     date-format: yyyy-MM-dd HH:mm:ss
   datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://10.60.8.31:3308/work_plan?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: YOUxin@com
-    driver-class-name: com.mysql.cj.jdbc.Driver
   redis:
     host: localhost
     port: 6379
     timeout: 3000
+
+# ShardingSphere 分表参数（修改日期范围时需同步 schema.sql 建表脚本）
+sharding:
+  # 是否打印 ShardingSphere 改写后的实际 SQL
+  sql-show: true
+  work-log:
+    start-date: "2026-01-01 00:00:00"
+    end-date: "2027-12-31 23:59:59"
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

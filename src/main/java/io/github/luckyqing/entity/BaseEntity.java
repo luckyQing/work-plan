@@ -1,5 +1,6 @@
 package io.github.luckyqing.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -22,31 +23,31 @@ public abstract class BaseEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
      * 创建人ID
      */
-    @TableField("create_id")
+    @TableField(value = "create_id", fill = FieldFill.INSERT)
     private Long createId;
 
     /**
      * 修改人ID
      */
-    @TableField("update_id")
+    @TableField(value = "update_id", fill = FieldFill.INSERT_UPDATE)
     private Long updateId;
 
     /**
-     * 创建时间
+     * 创建时间（同时是 t_work_log 的分片键，插入时必须有值）
      */
-    @TableField("create_time")
+    @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
     /**
      * 修改时间
      */
-    @TableField("update_time")
+    @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
     /**

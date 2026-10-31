@@ -365,3 +365,66 @@ INSERT INTO `t_work_log` (`id`, `task_id`, `user_id`, `log_date`, `hours`, `rema
  (2, 1, 2, '2026-04-06', 3.0, '', 2, 2, '2026-04-06 17:41:11', '2026-04-06 17:41:11', 0),
  (3, 2, 2, '2026-04-06', 6.0, '', 2, 2, '2026-04-06 17:41:24', '2026-04-06 17:41:24', 0),
  (4, 5, 2, '2026-04-06', 3.0, '', 2, 2, '2026-04-06 17:52:45', '2026-04-06 17:52:45', 0);
+
+-- ============================================================
+-- ShardingSphere 按日分表：批量创建 t_work_log_yyyyMMdd 分表
+-- 分表日期范围需与 application.yml 中 sharding.work-log.start-date / end-date 保持一致
+-- 以下使用存储过程批量建表（2026-01-01 ~ 2027-12-31）
+-- ============================================================
+DROP PROCEDURE IF EXISTS create_work_log_sharding_tables;
+
+DELIMITER $$
+
+CREATE PROCEDURE create_work_log_sharding_tables()
+BEGIN
+    DECLARE start_date DATE DEFAULT '2026-01-01';
+    DECLARE end_date   DATE DEFAULT '2027-12-31';
+    DECLARE cur_date   DATE;
+    DECLARE table_name VARCHAR(64);
+    DECLARE sql_text   VARCHAR(1000);
+
+    SET cur_date = start_date;
+
+    WHILE cur_date <= end_date DO
+        SET table_name = CONCAT(
+            't_work_log_',
+            DATE_FORMAT(cur_date, '%Y%m%d')
+        );
+
+        SET sql_text = CONCAT(
+            'CREATE TABLE IF NOT EXISTS `', table_name, '` (',
+            '`id` bigint NOT NULL COMMENT ''主键ID（雪花算法）'',',
+            '`task_id` bigint unsigned NOT NULL COMMENT ''关联任务ID'',',
+            '`user_id` bigint unsigned NOT NULL COMMENT ''录入人ID'',',
+            '`log_date` date NOT NULL COMMENT ''工作日期'',',
+            '`hours` decimal(4,1) unsigned NOT NULL COMMENT ''录入工时'',',
+            '`remark` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT ''备注'',',
+            '`create_id` bigint unsigned DEFAULT NULL COMMENT ''创建人ID'',',
+            '`update_id` bigint unsigned DEFAULT NULL COMMENT ''修改人ID'',',
+            '`create_time` datetime DEFAULT CURRENT_TIMESTAMP,',
+            '`update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,',
+            '`deleted` tinyint unsigned DEFAULT ''0'',',
+            'PRIMARY KEY (`id`),',
+            'KEY `idx_user_date` (`user_id`,`log_date`),',
+            'KEY `idx_task_id` (`task_id`)',
+            ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ',
+            'COMMENT=''工时录入表_', DATE_FORMAT(cur_date, '%Y%m%d'), ''';'
+        );
+
+        SET @ddl = sql_text;
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET cur_date = DATE_ADD(cur_date, INTERVAL 1 DAY);
+END WHILE;
+END
+$$
+
+DELIMITER ;
+
+-- 执行建表
+CALL create_work_log_sharding_tables();
+
+-- 清理存储过程
+DROP PROCEDURE IF EXISTS create_work_log_sharding_tables;

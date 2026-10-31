@@ -1,6 +1,7 @@
 package io.github.luckyqing.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import io.github.luckyqing.config.ShardingTable;
 import io.github.luckyqing.entity.WorkLogEntity;
 import io.github.luckyqing.entity.dataobject.WorkLogDO;
 import org.apache.ibatis.annotations.Param;
@@ -15,6 +16,7 @@ import java.util.List;
  * @author collin.li
  * @since 2026-07-20
  */
+@ShardingTable
 public interface WorkLogMapper extends BaseMapper<WorkLogEntity> {
 
     /**
